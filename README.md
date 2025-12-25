@@ -2,7 +2,7 @@
 
 通过 OpenAlex 与 Crossref 双数据源交叉验证，智能解析引用字段并评估学术引用的可信度。支持批量校验，每行一条引用。
 
-**演示站点:** [https://citation.octozh.de](https://citation.octozh.de)
+[**演示站点**](https://citation.octozh.de)
 
 ![校验结果示例](results.png)
 

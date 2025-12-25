@@ -1,0 +1,963 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>引用真伪快速校验（OpenAlex + Crossref）</title>
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --primary-light: #818cf8;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px 16px;
+      line-height: 1.6;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin: 0 0 12px 0;
+    }
+
+    .header p {
+      color: var(--text-muted);
+      font-size: 14px;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: var(--shadow);
+      margin-bottom: 20px;
+      border: 1px solid var(--border);
+    }
+
+    .card-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin: 0 0 16px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .input-section {
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      gap: 20px;
+    }
+
+    @media (max-width: 768px) {
+      .input-section { grid-template-columns: 1fr; }
+    }
+
+    label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 8px;
+      color: var(--text);
+    }
+
+    textarea, input[type="text"], input[type="email"] {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      font-size: 14px;
+      transition: all 0.2s ease;
+      background: var(--card-bg);
+      font-family: inherit;
+    }
+
+    textarea:focus, input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 180px;
+    }
+
+    .hint {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 8px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+      color: white;
+      box-shadow: 0 4px 14px 0 rgba(79, 70, 229, 0.4);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px 0 rgba(79, 70, 229, 0.5);
+    }
+
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-secondary {
+      background: var(--bg);
+      color: var(--text);
+      border: 2px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: var(--border);
+    }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    /* Progress Bar */
+    .progress-container {
+      display: none;
+      margin-bottom: 20px;
+    }
+
+    .progress-container.active {
+      display: block;
+    }
+
+    .progress-bar {
+      height: 8px;
+      background: var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--primary-light));
+      border-radius: 4px;
+      transition: width 0.3s ease;
+      width: 0%;
+    }
+
+    .progress-text {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 8px;
+    }
+
+    /* Summary Stats */
+    .summary {
+      display: none;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .summary.active {
+      display: grid;
+    }
+
+    @media (max-width: 600px) {
+      .summary { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    .stat-card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+    }
+
+    .stat-label {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .stat-card.total .stat-value { color: var(--primary); }
+    .stat-card.high .stat-value { color: var(--success); }
+    .stat-card.medium .stat-value { color: var(--warning); }
+    .stat-card.low .stat-value { color: var(--danger); }
+
+    /* Result Items */
+    .result-item {
+      background: var(--card-bg);
+      border-radius: 12px;
+      margin-bottom: 16px;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .result-header {
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.2s;
+    }
+
+    .result-header:hover {
+      background: var(--bg);
+    }
+
+    .result-index {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+
+    .result-title {
+      flex: 1;
+      font-size: 14px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .result-score {
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .result-score.high {
+      background: rgba(16, 185, 129, 0.1);
+      color: var(--success);
+    }
+
+    .result-score.medium {
+      background: rgba(245, 158, 11, 0.1);
+      color: var(--warning);
+    }
+
+    .result-score.low {
+      background: rgba(239, 68, 68, 0.1);
+      color: var(--danger);
+    }
+
+    .result-toggle {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      transition: transform 0.2s;
+    }
+
+    .result-item.expanded .result-toggle {
+      transform: rotate(180deg);
+    }
+
+    .result-details {
+      display: none;
+      padding: 0 20px 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    .result-item.expanded .result-details {
+      display: block;
+    }
+
+    .detail-section {
+      margin-top: 16px;
+    }
+
+    .detail-section h4 {
+      font-size: 14px;
+      font-weight: 600;
+      margin: 0 0 12px 0;
+      color: var(--text);
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 8px 16px;
+      font-size: 13px;
+    }
+
+    .detail-label {
+      color: var(--text-muted);
+    }
+
+    .detail-value {
+      color: var(--text);
+      word-break: break-word;
+    }
+
+    .detail-value a {
+      color: var(--primary);
+      text-decoration: none;
+    }
+
+    .detail-value a:hover {
+      text-decoration: underline;
+    }
+
+    .source-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      margin-right: 8px;
+    }
+
+    .source-badge.openalex {
+      background: rgba(79, 70, 229, 0.1);
+      color: var(--primary);
+    }
+
+    .source-badge.crossref {
+      background: rgba(245, 158, 11, 0.1);
+      color: var(--warning);
+    }
+
+    .score-inline {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+    }
+
+    .empty-state svg {
+      width: 64px;
+      height: 64px;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+
+    .loading-spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .processing-item {
+      background: linear-gradient(90deg, var(--bg) 25%, var(--card-bg) 50%, var(--bg) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 16px;
+      border: 1px solid var(--border);
+    }
+
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* Verdict bar */
+    .verdict-bar {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .verdict-segment {
+      flex: 1;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--border);
+    }
+
+    .verdict-segment.active.high { background: var(--success); }
+    .verdict-segment.active.medium { background: var(--warning); }
+    .verdict-segment.active.low { background: var(--danger); }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>引用真伪快速校验</h1>
+    <p>通过 OpenAlex 与 Crossref 双数据源交叉验证，智能解析引用字段并评估可信度。支持批量校验，每行一条引用。</p>
+  </div>
+
+  <div class="card">
+    <div class="input-section">
+      <div>
+        <label for="citation">粘贴引用条目（支持多条，每行一条）</label>
+        <textarea id="citation" placeholder="在此粘贴引用条目，每行一条..."></textarea>
+        <div class="hint">提示：每行粘贴一条引用，系统将逐条校验并汇总结果。空行会被自动忽略。</div>
+      </div>
+      <div>
+        <label for="mailto">联系邮箱（可选）</label>
+        <input type="email" id="mailto" placeholder="you@example.com" />
+        <div class="hint">提供邮箱可进入 OpenAlex/Crossref 的 polite pool，获得更稳定的响应。</div>
+
+        <div class="actions">
+          <button id="run" class="btn btn-primary">
+            <span class="btn-text">开始校验</span>
+          </button>
+          <button id="clear" class="btn btn-secondary">清空</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="progress" class="progress-container">
+    <div class="card" style="padding: 16px 20px;">
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+      <div class="progress-text">
+        <span id="progressStatus">正在校验...</span>
+        <span id="progressCount">0 / 0</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="summary" class="summary">
+    <div class="stat-card total">
+      <div class="stat-value" id="statTotal">0</div>
+      <div class="stat-label">总条目</div>
+    </div>
+    <div class="stat-card high">
+      <div class="stat-value" id="statHigh">0</div>
+      <div class="stat-label">高可信</div>
+    </div>
+    <div class="stat-card medium">
+      <div class="stat-value" id="statMedium">0</div>
+      <div class="stat-label">中可信</div>
+    </div>
+    <div class="stat-card low">
+      <div class="stat-value" id="statLow">0</div>
+      <div class="stat-label">低可信</div>
+    </div>
+  </div>
+
+  <div id="results"></div>
+
+<script>
+/** ---------- 工具函数 ---------- */
+function norm(s) {
+  return (s || "").toLowerCase()
+    .replace(/[\[\]\(\)\{\},.:;'"`~!@#$%^&*_+=<>?/\\|-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function tokens(s) {
+  return new Set(norm(s).split(" ").filter(Boolean));
+}
+
+function jaccard(a, b) {
+  const A = tokens(a), B = tokens(b);
+  if (A.size === 0 || B.size === 0) return 0;
+  let inter = 0;
+  for (const t of A) if (B.has(t)) inter++;
+  const union = A.size + B.size - inter;
+  return inter / union;
+}
+
+function pickBest(items, scoreFn) {
+  let best = null, bestScore = -1;
+  for (const it of items) {
+    const sc = scoreFn(it);
+    if (sc > bestScore) { best = it; bestScore = sc; }
+  }
+  return { best, bestScore };
+}
+
+function esc(s) {
+  return (s ?? "").toString().replace(/[&<>"']/g, m => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[m]));
+}
+
+/** ---------- 解析引用 ---------- */
+function parseCitation(raw) {
+  const s = raw.trim();
+
+  const yearMatch = s.match(/\b(19|20)\d{2}\b/);
+  const year = yearMatch ? parseInt(yearMatch[0], 10) : null;
+
+  const doiMatch = s.match(/\b10\.\d{4,9}\/[-._;()/:A-Z0-9]+\b/i);
+  const doi = doiMatch ? doiMatch[0] : null;
+
+  let title = null;
+  const jIdx = s.indexOf("[J]");
+  const mIdx = s.indexOf("[M]");
+  const typeIdx = jIdx !== -1 ? jIdx : mIdx;
+
+  if (typeIdx !== -1) {
+    const beforeType = s.slice(0, typeIdx);
+    const firstDot = beforeType.indexOf(". ");
+    if (firstDot !== -1) title = beforeType.slice(firstDot + 2).trim();
+  }
+  if (!title) {
+    const parts = s.split(".");
+    if (parts.length >= 3) title = parts[1].trim();
+  }
+
+  let journal = null;
+  if (typeIdx !== -1) {
+    const after = s.slice(typeIdx + 3);
+    const dot = after.indexOf(".");
+    const chunk = dot !== -1 ? after.slice(dot + 1) : after;
+    journal = chunk.split(",")[0].trim();
+    if (!journal) journal = null;
+  }
+
+  let volume = null, issue = null;
+  const vi = s.match(/,\s*\d{4}\s*,\s*([0-9A-Za-z]+)\s*\(\s*([0-9A-Za-z]+)\s*\)/);
+  if (vi) {
+    volume = vi[1]; issue = vi[2];
+  } else {
+    const vOnly = s.match(/,\s*\d{4}\s*,\s*([0-9A-Za-z]+)\b/);
+    if (vOnly) volume = vOnly[1];
+  }
+
+  let firstPage = null, lastPage = null;
+  const pp = s.match(/:\s*(\d+)\s*[-–—]\s*(\d+)\b/);
+  if (pp) { firstPage = pp[1]; lastPage = pp[2]; }
+
+  let authors = [];
+  const firstDot = s.indexOf(".");
+  if (firstDot !== -1) {
+    const aPart = s.slice(0, firstDot);
+    authors = aPart.split(",").map(x => x.trim()).filter(Boolean).map(one => {
+      return one.split(/\s+/)[0];
+    });
+  }
+
+  return { raw: s, year, doi, title, journal, volume, issue, firstPage, lastPage, authors };
+}
+
+/** ---------- API 查询 ---------- */
+async function queryOpenAlex(p, mailto) {
+  let url = new URL("https://api.openalex.org/works");
+  url.searchParams.set("per-page", "25");
+  if (mailto) url.searchParams.set("mailto", mailto);
+
+  if (p.doi) {
+    url.searchParams.set("filter", `doi:${p.doi.toLowerCase()}`);
+  } else {
+    url.searchParams.set("search", p.title || p.raw);
+    if (p.year) url.searchParams.set("filter", `publication_year:${p.year}`);
+  }
+
+  const r = await fetch(url.toString());
+  if (!r.ok) throw new Error("OpenAlex 请求失败: " + r.status);
+  return await r.json();
+}
+
+async function queryCrossref(p, mailto) {
+  // ✅ DOI：精确取回
+  if (p.doi) {
+    const doiEnc = encodeURIComponent(p.doi.toLowerCase());
+    const url = new URL(`https://api.crossref.org/works/${doiEnc}`);
+    if (mailto) url.searchParams.set("mailto", mailto);
+
+    const r = await fetch(url.toString(), { headers: { "Accept": "application/json" } });
+    if (!r.ok) throw new Error("Crossref DOI 精确查询失败: " + r.status);
+
+    const one = await r.json();
+    // 统一成你现有的返回结构：cr.message.items
+    return { message: { items: [one.message] } };
+  }
+
+  // 原来的：模糊检索
+  let url = new URL("https://api.crossref.org/works");
+  url.searchParams.set("rows", "50");
+  if (mailto) url.searchParams.set("mailto", mailto);
+
+  if (p.title) url.searchParams.set("query.bibliographic", p.title);
+  if (p.journal) url.searchParams.set("query.container-title", p.journal);
+  if (p.authors && p.authors[0]) url.searchParams.set("query.author", p.authors[0]);
+  if (p.year) url.searchParams.set("filter", `from-pub-date:${p.year}-01-01,until-pub-date:${p.year}-12-31`);
+
+  const r = await fetch(url.toString(), { headers: { "Accept": "application/json" } });
+  if (!r.ok) throw new Error("Crossref 请求失败: " + r.status);
+  return await r.json();
+}
+
+/** ---------- 打分 ---------- */
+function scoreOpenAlexWork(p, w) {
+  const t = jaccard(p.title, w.title || "");
+  const y = (p.year && w.publication_year === p.year) ? 1 : 0;
+  const j = jaccard(p.journal, (w.primary_location?.source?.display_name) || "");
+  const v = (p.volume && w.biblio?.volume && String(w.biblio.volume) === String(p.volume)) ? 1 : 0;
+  const i = (p.issue && w.biblio?.issue && String(w.biblio.issue) === String(p.issue)) ? 1 : 0;
+  const fp = (p.firstPage && w.biblio?.first_page && String(w.biblio.first_page) === String(p.firstPage)) ? 1 : 0;
+  const lp = (p.lastPage && w.biblio?.last_page && String(w.biblio.last_page) === String(p.lastPage)) ? 1 : 0;
+
+  const workAuthors = (w.authorships || []).map(a => a.author?.display_name || "").join(" ");
+  const a = p.authors?.length ? jaccard(p.authors.join(" "), workAuthors) : 0;
+
+  return 0.45 * t + 0.15 * a + 0.12 * j + 0.10 * y + 0.06 * v + 0.04 * i + 0.04 * fp + 0.04 * lp;
+}
+
+function scoreCrossrefItem(p, it) {
+  const title = (it.title && it.title[0]) ? it.title[0] : "";
+  const container = (it["container-title"] && it["container-title"][0]) ? it["container-title"][0] : "";
+  const issuedYear = it.issued?.["date-parts"]?.[0]?.[0];
+
+  const t = jaccard(p.title, title);
+  const j = jaccard(p.journal, container);
+  const y = (p.year && issuedYear === p.year) ? 1 : 0;
+
+  const crAuthors = (it.author || []).map(a => a.family || "").join(" ");
+  const a = p.authors?.length ? jaccard(p.authors.join(" "), crAuthors) : 0;
+
+  const v = (p.volume && it.volume && String(it.volume) === String(p.volume)) ? 1 : 0;
+  const i = (p.issue && it.issue && String(it.issue) === String(p.issue)) ? 1 : 0;
+  const page = it.page || "";
+  const fp = (p.firstPage && page.includes(p.firstPage)) ? 1 : 0;
+  const lp = (p.lastPage && page.includes(p.lastPage)) ? 1 : 0;
+
+  return 0.45 * t + 0.15 * a + 0.12 * j + 0.10 * y + 0.06 * v + 0.04 * i + 0.04 * fp + 0.04 * lp;
+}
+
+function getVerdict(score) {
+  if (score >= 0.78) return { level: "high", text: "高可信", desc: "强匹配" };
+  if (score >= 0.55) return { level: "medium", text: "中可信", desc: "需核对" };
+  return { level: "low", text: "低可信", desc: "可能伪造" };
+}
+
+/** ---------- 单条校验 ---------- */
+async function verifySingle(raw, mailto) {
+  const p = parseCitation(raw);
+
+  const [oa, cr] = await Promise.all([
+    queryOpenAlex(p, mailto).catch(e => ({ __error: e.message })),
+    queryCrossref(p, mailto).catch(e => ({ __error: e.message }))
+  ]);
+
+  const oaItems = oa?.results || [];
+  const crItems = cr?.message?.items || [];
+
+  const oaBest = pickBest(oaItems, w => scoreOpenAlexWork(p, w));
+  const crBest = pickBest(crItems, it => scoreCrossrefItem(p, it));
+
+  const oaScore = oaBest?.best ? oaBest.bestScore : 0;
+  const crScore = crBest?.best ? crBest.bestScore : 0;
+  const combined = Math.max(oaScore, crScore) * 0.6 + Math.min(oaScore, crScore) * 0.4;
+
+  return {
+    raw,
+    parsed: p,
+    oaBest,
+    crBest,
+    oaScore,
+    crScore,
+    combined,
+    verdict: getVerdict(combined)
+  };
+}
+
+/** ---------- UI 渲染 ---------- */
+function renderResult(result, index) {
+  const { raw, parsed, oaBest, crBest, oaScore, crScore, combined, verdict } = result;
+  const oa = oaBest?.best;
+  const cr = crBest?.best;
+
+  return `
+    <div class="result-item" data-index="${index}">
+      <div class="result-header" onclick="toggleResult(${index})">
+        <div class="result-index">${index + 1}</div>
+        <div class="result-title">${esc(parsed.title || raw.slice(0, 80))}</div>
+        <div class="result-score ${verdict.level}">${verdict.text} ${combined.toFixed(2)}</div>
+        <div class="result-toggle">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+      </div>
+      <div class="result-details">
+        <div class="detail-section">
+          <h4>解析字段</h4>
+          <div class="detail-grid">
+            <div class="detail-label">原始引用</div>
+            <div class="detail-value" style="font-size:12px;color:var(--text-muted)">${esc(raw)}</div>
+            <div class="detail-label">标题</div>
+            <div class="detail-value">${esc(parsed.title || "-")}</div>
+            <div class="detail-label">作者</div>
+            <div class="detail-value">${esc((parsed.authors || []).join(", ") || "-")}</div>
+            <div class="detail-label">期刊/出版社</div>
+            <div class="detail-value">${esc(parsed.journal || "-")}</div>
+            <div class="detail-label">年份</div>
+            <div class="detail-value">${esc(parsed.year || "-")}</div>
+            <div class="detail-label">卷(期):页码</div>
+            <div class="detail-value">${esc(parsed.volume || "-")}(${esc(parsed.issue || "-")}):${esc(parsed.firstPage || "-")}-${esc(parsed.lastPage || "-")}</div>
+            <div class="detail-label">DOI</div>
+            <div class="detail-value">${esc(parsed.doi || "未提供")}</div>
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <h4>
+            <span class="source-badge openalex">OpenAlex</span>
+            <span class="score-inline">匹配分 ${oaScore.toFixed(3)}</span>
+          </h4>
+          ${oa ? `
+            <div class="detail-grid">
+              <div class="detail-label">标题</div>
+              <div class="detail-value">${esc(oa.title || "-")}</div>
+              <div class="detail-label">来源</div>
+              <div class="detail-value">${esc(oa.primary_location?.source?.display_name || "-")}</div>
+              <div class="detail-label">年份</div>
+              <div class="detail-value">${esc(oa.publication_year || "-")}</div>
+              <div class="detail-label">卷期页</div>
+              <div class="detail-value">${esc(oa.biblio?.volume || "-")}(${esc(oa.biblio?.issue || "-")}):${esc(oa.biblio?.first_page || "-")}-${esc(oa.biblio?.last_page || "-")}</div>
+              <div class="detail-label">DOI</div>
+              <div class="detail-value">${oa.doi ? `<a href="https://doi.org/${esc(oa.doi.replace('https://doi.org/',''))}" target="_blank">${esc(oa.doi)}</a>` : "-"}</div>
+              <div class="detail-label">OpenAlex</div>
+              <div class="detail-value"><a href="${esc(oa.id)}" target="_blank">查看详情</a></div>
+            </div>
+          ` : `<div style="color:var(--text-muted);font-size:13px">未找到匹配结果</div>`}
+        </div>
+
+        <div class="detail-section">
+          <h4>
+            <span class="source-badge crossref">Crossref</span>
+            <span class="score-inline">匹配分 ${crScore.toFixed(3)}</span>
+          </h4>
+          ${cr ? `
+            <div class="detail-grid">
+              <div class="detail-label">标题</div>
+              <div class="detail-value">${esc((cr.title && cr.title[0]) || "-")}</div>
+              <div class="detail-label">期刊</div>
+              <div class="detail-value">${esc((cr["container-title"] && cr["container-title"][0]) || "-")}</div>
+              <div class="detail-label">年份</div>
+              <div class="detail-value">${esc(cr.issued?.["date-parts"]?.[0]?.[0] || "-")}</div>
+              <div class="detail-label">卷期页</div>
+              <div class="detail-value">${esc(cr.volume || "-")}(${esc(cr.issue || "-")}):${esc(cr.page || "-")}</div>
+              <div class="detail-label">DOI</div>
+              <div class="detail-value">${cr.DOI ? `<a href="https://doi.org/${esc(cr.DOI)}" target="_blank">${esc(cr.DOI)}</a>` : "-"}</div>
+            </div>
+          ` : `<div style="color:var(--text-muted);font-size:13px">未找到匹配结果</div>`}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function toggleResult(index) {
+  const item = document.querySelector(`.result-item[data-index="${index}"]`);
+  if (item) item.classList.toggle("expanded");
+}
+
+function updateStats(results) {
+  const total = results.length;
+  const high = results.filter(r => r.verdict.level === "high").length;
+  const medium = results.filter(r => r.verdict.level === "medium").length;
+  const low = results.filter(r => r.verdict.level === "low").length;
+
+  document.getElementById("statTotal").textContent = total;
+  document.getElementById("statHigh").textContent = high;
+  document.getElementById("statMedium").textContent = medium;
+  document.getElementById("statLow").textContent = low;
+  document.getElementById("summary").classList.add("active");
+}
+
+function updateProgress(current, total, status) {
+  const percent = total > 0 ? (current / total) * 100 : 0;
+  document.getElementById("progressFill").style.width = percent + "%";
+  document.getElementById("progressCount").textContent = `${current} / ${total}`;
+  document.getElementById("progressStatus").textContent = status;
+}
+
+/** ---------- 主逻辑 ---------- */
+document.getElementById("run").addEventListener("click", async () => {
+  const btn = document.getElementById("run");
+  const btnText = btn.querySelector(".btn-text");
+  const resultsDiv = document.getElementById("results");
+  const progressDiv = document.getElementById("progress");
+  const summaryDiv = document.getElementById("summary");
+
+  const rawText = document.getElementById("citation").value;
+  const mailto = document.getElementById("mailto").value.trim();
+
+  // 解析多行，过滤空行
+  const lines = rawText.split("\n").map(l => l.trim()).filter(Boolean);
+
+  if (lines.length === 0) {
+    resultsDiv.innerHTML = `
+      <div class="card empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+        <div>请输入至少一条引用</div>
+      </div>
+    `;
+    return;
+  }
+
+  // 重置UI
+  btn.disabled = true;
+  btnText.innerHTML = `<span class="loading-spinner"></span> 校验中...`;
+  resultsDiv.innerHTML = "";
+  summaryDiv.classList.remove("active");
+  progressDiv.classList.add("active");
+  updateProgress(0, lines.length, "准备中...");
+
+  const results = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    updateProgress(i, lines.length, `正在校验第 ${i + 1} 条...`);
+
+    // 显示处理中占位
+    resultsDiv.innerHTML += `<div class="processing-item" id="processing-${i}">正在校验：${esc(lines[i].slice(0, 60))}...</div>`;
+
+    try {
+      const result = await verifySingle(lines[i], mailto);
+      results.push(result);
+
+      // 替换占位为真实结果
+      const placeholder = document.getElementById(`processing-${i}`);
+      if (placeholder) {
+        placeholder.outerHTML = renderResult(result, i);
+      }
+    } catch (e) {
+      results.push({
+        raw: lines[i],
+        parsed: parseCitation(lines[i]),
+        oaBest: null,
+        crBest: null,
+        oaScore: 0,
+        crScore: 0,
+        combined: 0,
+        verdict: { level: "low", text: "错误", desc: e.message }
+      });
+
+      const placeholder = document.getElementById(`processing-${i}`);
+      if (placeholder) {
+        placeholder.outerHTML = renderResult(results[results.length - 1], i);
+      }
+    }
+
+    // 添加小延迟避免请求过快
+    if (i < lines.length - 1) {
+      await new Promise(r => setTimeout(r, 300));
+    }
+  }
+
+  updateProgress(lines.length, lines.length, "校验完成");
+  updateStats(results);
+
+  btn.disabled = false;
+  btnText.textContent = "开始校验";
+
+  // 隐藏进度条
+  setTimeout(() => {
+    progressDiv.classList.remove("active");
+  }, 1000);
+});
+
+document.getElementById("clear").addEventListener("click", () => {
+  document.getElementById("citation").value = "";
+  document.getElementById("results").innerHTML = "";
+  document.getElementById("summary").classList.remove("active");
+  document.getElementById("progress").classList.remove("active");
+});
+
+// 默认展开第一个结果
+window.toggleResult = toggleResult;
+</script>
+</body>
+</html>

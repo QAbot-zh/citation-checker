@@ -24,7 +24,7 @@
 
     body {
       font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      max-width: 1100px;
+      max-width: 1200px;
       margin: 0 auto;
       padding: 24px 16px;
       line-height: 1.6;
@@ -74,7 +74,7 @@
 
     .input-section {
       display: grid;
-      grid-template-columns: 1fr 300px;
+      grid-template-columns: 1fr 360px;
       gap: 20px;
     }
 
@@ -129,18 +129,18 @@
       font-size: 15px;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all 0.25s ease;
     }
 
     .btn-primary {
       background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
       color: white;
-      box-shadow: 0 4px 14px 0 rgba(79, 70, 229, 0.4);
+      box-shadow: 0 4px 14px 0 rgba(79, 70, 229, 0.35);
     }
 
     .btn-primary:hover {
       transform: translateY(-2px);
-      box-shadow: 0 6px 20px 0 rgba(79, 70, 229, 0.5);
+      box-shadow: 0 6px 20px 0 rgba(79, 70, 229, 0.45);
     }
 
     .btn-primary:active {
@@ -153,19 +153,85 @@
       transform: none;
     }
 
+    .btn-extract {
+      background: linear-gradient(135deg, #06b6d4 0%, #22d3ee 100%);
+      color: white;
+      box-shadow: 0 4px 14px 0 rgba(6, 182, 212, 0.35);
+    }
+
+    .btn-extract:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px 0 rgba(6, 182, 212, 0.45);
+    }
+
+    .btn-extract:active {
+      transform: translateY(0);
+    }
+
+    .btn-success {
+      background: linear-gradient(135deg, var(--success) 0%, #34d399 100%);
+      color: white;
+      box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.35);
+    }
+
+    .btn-success:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px 0 rgba(16, 185, 129, 0.45);
+    }
+
+    .btn-success:active {
+      transform: translateY(0);
+    }
+
+    .btn-copy {
+      background: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
+      color: white;
+      box-shadow: 0 4px 14px 0 rgba(249, 115, 22, 0.35);
+    }
+
+    .btn-copy:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px 0 rgba(249, 115, 22, 0.45);
+    }
+
+    .btn-copy:active {
+      transform: translateY(0);
+    }
+
     .btn-secondary {
-      background: var(--bg);
+      background: var(--card-bg);
       color: var(--text);
       border: 2px solid var(--border);
     }
 
     .btn-secondary:hover {
-      background: var(--border);
+      background: var(--bg);
+      border-color: #cbd5e1;
+    }
+
+    .btn-secondary:active {
+      transform: scale(0.98);
+    }
+
+    .btn-clear {
+      background: linear-gradient(135deg, #64748b 0%, #94a3b8 100%);
+      color: white;
+      box-shadow: 0 4px 14px 0 rgba(100, 116, 139, 0.35);
+    }
+
+    .btn-clear:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px 0 rgba(100, 116, 139, 0.45);
+    }
+
+    .btn-clear:active {
+      transform: translateY(0);
     }
 
     .actions {
       display: flex;
-      gap: 12px;
+      flex-wrap: wrap;
+      gap: 10px;
       margin-top: 16px;
     }
 
@@ -469,6 +535,87 @@
     .verdict-segment.active.high { background: var(--success); }
     .verdict-segment.active.medium { background: var(--warning); }
     .verdict-segment.active.low { background: var(--danger); }
+
+    /* Detail actions */
+    .detail-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn-small {
+      padding: 9px 18px;
+      font-size: 13px;
+      gap: 6px;
+      border-radius: 10px;
+    }
+
+    .export-section {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+
+    .export-section.active {
+      display: flex;
+    }
+
+    .export-selector {
+      display: flex;
+      background: var(--bg);
+      border-radius: 10px;
+      padding: 4px;
+      border: 2px solid var(--success);
+      box-shadow: 0 4px 12px 0 rgba(16, 185, 129, 0.15);
+    }
+
+    .export-option {
+      padding: 10px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      color: var(--text-muted);
+      user-select: none;
+      position: relative;
+    }
+
+    .export-option:hover {
+      color: var(--text);
+      background: rgba(16, 185, 129, 0.1);
+    }
+
+    .export-option.active {
+      background: linear-gradient(135deg, var(--success) 0%, #34d399 100%);
+      color: white;
+      box-shadow: 0 2px 8px 0 rgba(16, 185, 129, 0.3);
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+      color: white;
+      padding: 14px 28px;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 500;
+      opacity: 0;
+      transition: all 0.3s ease;
+      z-index: 1000;
+      box-shadow: 0 8px 24px 0 rgba(79, 70, 229, 0.4);
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
   </style>
 </head>
 <body>
@@ -490,10 +637,15 @@
         <div class="hint">提供邮箱可进入 OpenAlex/Crossref 的 polite pool，获得更稳定的响应。</div>
 
         <div class="actions">
-          <button id="run" class="btn btn-primary">
-            <span class="btn-text">开始校验</span>
+          <button id="run" class="btn btn-primary" title="调用 OpenAlex 和 Crossref API 校验引用真实性">
+            开始校验
           </button>
-          <button id="clear" class="btn btn-secondary">清空</button>
+          <button id="extractBib" class="btn btn-extract" title="直接解析引用生成 BibTeX，不调用 API">
+            生成 BibTeX
+          </button>
+          <button id="clear" class="btn btn-clear" title="清空输入和结果">
+            清空
+          </button>
         </div>
       </div>
     </div>
@@ -530,7 +682,31 @@
     </div>
   </div>
 
+  <div id="exportSection" class="export-section">
+    <div class="export-selector">
+      <div class="export-option active" data-value="all">全部</div>
+      <div class="export-option" data-value="high">高可信</div>
+    </div>
+    <button id="exportBib" class="btn btn-primary" title="下载 BibTeX 文件">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path>
+        <polyline points="7 10 12 15 17 10"></polyline>
+        <line x1="12" y1="15" x2="12" y2="3"></line>
+      </svg>
+      下载 BibTeX
+    </button>
+    <button id="copyBib" class="btn btn-copy" title="复制 BibTeX 到剪贴板">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+        <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path>
+      </svg>
+      复制 BibTeX
+    </button>
+  </div>
+
   <div id="results"></div>
+
+  <div id="toast" class="toast">已复制到剪贴板</div>
 
 <script>
 /** ---------- 工具函数 ---------- */
@@ -567,6 +743,206 @@ function esc(s) {
   return (s ?? "").toString().replace(/[&<>"']/g, m => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
   }[m]));
+}
+
+/** ---------- BibTeX 生成 ---------- */
+// 仅基于解析的引用生成 BibTeX（不调用 API）
+function generateBibTeXFromParsed(parsed) {
+  const type = parsed.journal ? 'article' : 'book';
+  const year = parsed.year || 'n.d.';
+  const title = parsed.title || '';
+  const journal = parsed.journal || '';
+  const volume = parsed.volume || '';
+  const number = parsed.issue || '';
+  const pages = (parsed.firstPage && parsed.lastPage)
+    ? `${parsed.firstPage}--${parsed.lastPage}`
+    : (parsed.firstPage || '');
+
+  const doi = parsed.doi || '';
+  const url = doi ? `https://doi.org/${doi}` : '';
+
+  // 处理作者
+  const authors = (parsed.authors || []).map(a => {
+    // 假设作者已经是姓氏格式，直接使用
+    return a;
+  });
+
+  const authorStr = authors.length > 0
+    ? authors.join(' and\n  ')
+    : '';
+
+  // 生成 citation key
+  let firstAuthor = authors[0] || 'Unknown';
+  const firstWord = (title || '').split(/\s+/)[0] || '';
+  const cleanWord = firstWord.replace(/[^a-zA-Z0-9]/g, '');
+  const citeKey = `${firstAuthor}${year}${cleanWord}`;
+
+  let bibtex = `@${type}{${citeKey},
+`;
+
+  if (authorStr) bibtex += `  author = {${authorStr}},
+`;
+  if (title) bibtex += `  title = {${title}},
+`;
+  if (journal) bibtex += `  journal = {${journal}},
+`;
+  if (year) bibtex += `  year = {${year}},
+`;
+  if (volume) bibtex += `  volume = {${volume}},
+`;
+  if (number) bibtex += `  number = {${number}},
+`;
+  if (pages) bibtex += `  pages = {${pages}},
+`;
+  if (doi) bibtex += `  doi = {${doi}},
+`;
+  if (url) bibtex += `  url = {${url}},
+`;
+
+  // 移除末尾逗号
+  bibtex = bibtex.replace(/,\n$/, '\n');
+  bibtex += '}';
+
+  return bibtex;
+}
+
+// 从 OpenAlex/Crossref 数据生成 BibTeX
+function generateBibTeX(result) {
+  const { parsed, oaBest, crBest } = result;
+  const oa = oaBest?.best;
+  const cr = crBest?.best;
+
+  // 优先使用 API 返回的原始 BibTeX
+  const rawBib = oa?.biblio?.raw || cr?.["bibliographic-metadata"]?.raw;
+  if (rawBib && typeof rawBib === 'string' && rawBib.trim().startsWith('@')) {
+    // 提取 citation key
+    const entryMatch = rawBib.match(/@(\w+)\s*\{([^,]+),/);
+    if (entryMatch) {
+      return rawBib.trim();
+    }
+  }
+
+  // 自行构建 BibTeX
+  const type = parsed.journal ? 'article' : 'book';
+  const year = oa?.publication_year || cr?.issued?.["date-parts"]?.[0]?.[0] || parsed.year || 'n.d.';
+  const title = oa?.title || (cr?.title?.[0]) || parsed.title || '';
+
+  // 提取作者
+  let authors = [];
+  if (oa?.authorships) {
+    authors = oa.authorships.map(a => {
+      const name = a.author?.display_name || '';
+      const parts = name.trim().split(/\s+/);
+      if (parts.length >= 2) {
+        const last = parts[parts.length - 1];
+        const first = parts.slice(0, -1).join(' ');
+        return `${last}, ${first}`;
+      }
+      return name;
+    });
+  } else if (cr?.author) {
+    authors = cr.author.map(a => {
+      const family = a.family || '';
+      const given = a.given || '';
+      return family ? (given ? `${family}, ${given}` : family) : '';
+    }).filter(Boolean);
+  } else if (parsed.authors?.length) {
+    authors = parsed.authors;
+  }
+
+  const authorStr = authors.length > 0
+    ? authors.join(' and\n  ')
+    : '';
+
+  const journal = oa?.primary_location?.source?.display_name ||
+                  (cr?.["container-title"]?.[0]) ||
+                  parsed.journal ||
+                  '';
+
+  const volume = oa?.biblio?.volume || cr?.volume || parsed.volume || '';
+  const number = oa?.biblio?.issue || cr?.issue || parsed.issue || '';
+  const pages = (oa?.biblio?.first_page && oa?.biblio?.last_page)
+    ? `${oa.biblio.first_page}--${oa.biblio.last_page}`
+    : (cr?.page || parsed.firstPage
+      ? (parsed.firstPage && parsed.lastPage ? `${parsed.firstPage}--${parsed.lastPage}` : (cr?.page || ''))
+      : '');
+
+  const doi = oa?.doi || cr?.DOI || parsed.doi || '';
+  const url = oa?.id || (doi ? `https://doi.org/${doi}` : '');
+
+  // 生成 citation key: 第一作者姓氏+年份+首词
+  let firstAuthor = authors[0] || '';
+  if (firstAuthor.includes(',')) {
+    firstAuthor = firstAuthor.split(',')[0].trim();
+  }
+  const firstWord = (title || '').split(/\s+/)[0] || '';
+  const cleanWord = firstWord.replace(/[^a-zA-Z0-9]/g, '');
+  const citeKey = `${firstAuthor}${year}${cleanWord}`;
+
+  let bibtex = `@${type}{${citeKey},
+`;
+
+  if (authorStr) bibtex += `  author = {${authorStr}},
+`;
+  if (title) bibtex += `  title = {${title}},
+`;
+  if (journal) bibtex += `  journal = {${journal}},
+`;
+  if (year) bibtex += `  year = {${year}},
+`;
+  if (volume) bibtex += `  volume = {${volume}},
+`;
+  if (number) bibtex += `  number = {${number}},
+`;
+  if (pages) bibtex += `  pages = {${pages}},
+`;
+  if (doi) bibtex += `  doi = {${doi}},
+`;
+  if (url) bibtex += `  url = {${url}},
+`;
+
+  // 移除末尾逗号
+  bibtex = bibtex.replace(/,\n$/, '\n');
+  bibtex += '}';
+
+  return bibtex;
+}
+
+// 复制到剪贴板
+async function copyToClipboard(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch (e) {
+    // 回退方案
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      return true;
+    } catch (e2) {
+      document.body.removeChild(textarea);
+      return false;
+    }
+  }
+}
+
+// 下载文件
+function downloadFile(content, filename) {
+  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 /** ---------- 解析引用 ---------- */
@@ -832,6 +1208,18 @@ function renderResult(result, index) {
             </div>
           ` : `<div style="color:var(--text-muted);font-size:13px">未找到匹配结果</div>`}
         </div>
+
+        <div class="detail-section">
+          <div class="detail-actions">
+            <button class="btn btn-extract btn-small" onclick="copyBibTeX(${index}, this)" title="复制此条目的 BibTeX">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path>
+              </svg>
+              复制 BibTeX
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   `;
@@ -853,6 +1241,23 @@ function updateStats(results) {
   document.getElementById("statMedium").textContent = medium;
   document.getElementById("statLow").textContent = low;
   document.getElementById("summary").classList.add("active");
+
+  // 显示导出区域
+  if (total > 0) {
+    document.getElementById("exportSection").classList.add("active");
+  }
+
+  // 保存结果到全局变量供导出使用
+  window.currentResults = results;
+
+  // 校验完成后，如果有高可信条目，默认选择"高可信"
+  if (!window.extractedMode && high > 0) {
+    exportMode = "high";
+    document.querySelectorAll(".export-option").forEach(o => o.classList.remove("active"));
+    document.querySelector(".export-option[data-value='high']").classList.add("active");
+  } else {
+    switchToAll();
+  }
 }
 
 function updateProgress(current, total, status) {
@@ -865,7 +1270,6 @@ function updateProgress(current, total, status) {
 /** ---------- 主逻辑 ---------- */
 document.getElementById("run").addEventListener("click", async () => {
   const btn = document.getElementById("run");
-  const btnText = btn.querySelector(".btn-text");
   const resultsDiv = document.getElementById("results");
   const progressDiv = document.getElementById("progress");
   const summaryDiv = document.getElementById("summary");
@@ -890,11 +1294,15 @@ document.getElementById("run").addEventListener("click", async () => {
 
   // 重置UI
   btn.disabled = true;
-  btnText.innerHTML = `<span class="loading-spinner"></span> 校验中...`;
+  const originalText = btn.textContent;
+  btn.innerHTML = `<span class="loading-spinner"></span> 校验中...`;
   resultsDiv.innerHTML = "";
   summaryDiv.classList.remove("active");
   progressDiv.classList.add("active");
   updateProgress(0, lines.length, "准备中...");
+
+  // 清除提取模式，校验完成后将使用校验结果生成 BibTeX
+  window.extractedMode = false;
 
   const results = [];
 
@@ -941,7 +1349,7 @@ document.getElementById("run").addEventListener("click", async () => {
   updateStats(results);
 
   btn.disabled = false;
-  btnText.textContent = "开始校验";
+  btn.textContent = originalText;
 
   // 隐藏进度条
   setTimeout(() => {
@@ -954,10 +1362,269 @@ document.getElementById("clear").addEventListener("click", () => {
   document.getElementById("results").innerHTML = "";
   document.getElementById("summary").classList.remove("active");
   document.getElementById("progress").classList.remove("active");
+  document.getElementById("exportSection").classList.remove("active");
+  window.currentResults = [];
 });
+
+/** ---------- BibTeX 导出功能 ---------- */
+// 显示提示消息
+function showToast(message) {
+  const toast = document.getElementById("toast");
+  toast.textContent = message;
+  toast.classList.add("show");
+  setTimeout(() => toast.classList.remove("show"), 2000);
+}
+
+// 导出模式：all 或 high
+let exportMode = "all";
+
+// 选择器切换
+document.querySelectorAll(".export-option").forEach(option => {
+  option.addEventListener("click", () => {
+    document.querySelectorAll(".export-option").forEach(o => o.classList.remove("active"));
+    option.classList.add("active");
+    exportMode = option.dataset.value;
+  });
+});
+
+// 切换到全部模式
+function switchToAll() {
+  exportMode = "all";
+  document.querySelectorAll(".export-option").forEach(o => o.classList.remove("active"));
+  document.querySelector(".export-option[data-value='all']").classList.add("active");
+}
+
+// 获取要导出的结果和智能提示信息
+function getResultsForExport() {
+  const results = window.currentResults || [];
+  if (results.length === 0) return { results: [], message: "暂无结果", needSwitch: false };
+
+  // 提取模式下没有高可信概念
+  if (window.extractedMode && results[0]?.isExtracted) {
+    if (exportMode === "high") {
+      return { results: [], message: "未经过校验，无高可信条目", needSwitch: true };
+    }
+    return { results, message: "", needSwitch: false };
+  }
+
+  if (exportMode === "high") {
+    const highResults = results.filter(r => r.verdict.level === "high");
+    if (highResults.length === 0) {
+      const medium = results.filter(r => r.verdict.level === "medium").length;
+      const low = results.filter(r => r.verdict.level === "low").length;
+      if (medium > 0 || low > 0) {
+        return { results: [], message: `无高可信条目（${medium}中可信/${low}低可信）`, needSwitch: true };
+      }
+      return { results: [], message: "无高可信条目", needSwitch: true };
+    }
+    return { results: highResults, message: "", needSwitch: false };
+  }
+
+  return { results, message: "", needSwitch: false };
+}
+
+// 生成 BibTeX 字符串
+function generateBibTeXString(results) {
+  if (results.length === 0) return "";
+
+  const isExtractedMode = window.extractedMode && results[0]?.isExtracted;
+  return results.map(r =>
+    isExtractedMode ? generateBibTeXFromParsed(r.parsed) : generateBibTeX(r)
+  ).join("\n\n");
+}
+
+// 下载 BibTeX
+document.getElementById("exportBib").addEventListener("click", () => {
+  const { results, message, needSwitch } = getResultsForExport();
+  if (results.length === 0) {
+    showToast(message);
+    if (needSwitch) switchToAll();
+    return;
+  }
+
+  const allBibtex = generateBibTeXString(results);
+  const filename = `citations_${new Date().toISOString().slice(0, 10)}.bib`;
+  downloadFile(allBibtex, filename);
+  showToast(`已下载 ${results.length} 条 BibTeX`);
+});
+
+// 复制 BibTeX
+document.getElementById("copyBib").addEventListener("click", async () => {
+  const { results, message, needSwitch } = getResultsForExport();
+  if (results.length === 0) {
+    showToast(message);
+    if (needSwitch) switchToAll();
+    return;
+  }
+
+  const allBibtex = generateBibTeXString(results);
+  const success = await copyToClipboard(allBibtex);
+
+  if (success) {
+    showToast(`已复制 ${results.length} 条 BibTeX`);
+  } else {
+    showToast("复制失败，请重试");
+  }
+});
+
+// 复制单个 BibTeX（结果项内）
+async function copyBibTeX(index, button) {
+  const results = window.currentResults || [];
+  if (!results[index]) return;
+
+  const isExtracted = window.extractedMode && results[index]?.isExtracted;
+  const bibtex = isExtracted
+    ? generateBibTeXFromParsed(results[index].parsed)
+    : generateBibTeX(results[index]);
+  const success = await copyToClipboard(bibtex);
+
+  if (success) {
+    const originalText = button.innerHTML;
+    button.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg> 已复制`;
+    setTimeout(() => button.innerHTML = originalText, 2000);
+  } else {
+    showToast("复制失败，请重试");
+  }
+}
+
+// 提取 BibTeX（不调用 API）
+document.getElementById("extractBib").addEventListener("click", () => {
+  const rawText = document.getElementById("citation").value;
+  const resultsDiv = document.getElementById("results");
+  const summaryDiv = document.getElementById("summary");
+  const exportSection = document.getElementById("exportSection");
+
+  const lines = rawText.split("\n").map(l => l.trim()).filter(Boolean);
+
+  if (lines.length === 0) {
+    resultsDiv.innerHTML = `
+      <div class="card empty-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+        <div>请输入至少一条引用</div>
+      </div>
+    `;
+    return;
+  }
+
+  // 生成仅解析的结果（不调用 API）
+  const results = lines.map((line, i) => {
+    const parsed = parseCitation(line);
+    return {
+      raw: line,
+      parsed: parsed,
+      oaBest: null,
+      crBest: null,
+      oaScore: 0,
+      crScore: 0,
+      combined: 0,
+      verdict: { level: "medium", text: "未校验", desc: "基于解析" },
+      isExtracted: true  // 标记为仅提取，未校验
+    };
+  });
+
+  // 显示结果
+  resultsDiv.innerHTML = results.map((r, i) => renderExtractedResult(r, i)).join('');
+
+  // 更新统计
+  const total = results.length;
+  document.getElementById("statTotal").textContent = total;
+  document.getElementById("statHigh").textContent = "-";
+  document.getElementById("statMedium").textContent = "-";
+  document.getElementById("statLow").textContent = "-";
+  summaryDiv.classList.add("active");
+  exportSection.classList.add("active");
+
+  // 保存结果到全局变量
+  window.currentResults = results;
+  window.extractedMode = true;  // 标记当前为提取模式
+
+  // 提取模式下重置选择器为"全部"
+  exportMode = "all";
+  document.querySelectorAll(".export-option").forEach(o => o.classList.remove("active"));
+  document.querySelector(".export-option[data-value='all']").classList.add("active");
+});
+
+// 渲染仅提取的结果（不调用 API）
+function renderExtractedResult(result, index) {
+  const { raw, parsed } = result;
+
+  return `
+    <div class="result-item" data-index="${index}">
+      <div class="result-header" onclick="toggleResult(${index})">
+        <div class="result-index">${index + 1}</div>
+        <div class="result-title">${esc(parsed.title || raw.slice(0, 80))}</div>
+        <div class="result-score medium">未校验</div>
+        <div class="result-toggle">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+      </div>
+      <div class="result-details">
+        <div class="detail-section">
+          <h4>解析字段</h4>
+          <div class="detail-grid">
+            <div class="detail-label">原始引用</div>
+            <div class="detail-value" style="font-size:12px;color:var(--text-muted)">${esc(raw)}</div>
+            <div class="detail-label">标题</div>
+            <div class="detail-value">${esc(parsed.title || "-")}</div>
+            <div class="detail-label">作者</div>
+            <div class="detail-value">${esc((parsed.authors || []).join(", ") || "-")}</div>
+            <div class="detail-label">期刊/出版社</div>
+            <div class="detail-value">${esc(parsed.journal || "-")}</div>
+            <div class="detail-label">年份</div>
+            <div class="detail-value">${esc(parsed.year || "-")}</div>
+            <div class="detail-label">卷(期):页码</div>
+            <div class="detail-value">${esc(parsed.volume || "-")}(${esc(parsed.issue || "-")}):${esc(parsed.firstPage || "-")}-${esc(parsed.lastPage || "-")}</div>
+            <div class="detail-label">DOI</div>
+            <div class="detail-value">${esc(parsed.doi || "未提供")}</div>
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <h4> BibTeX 预览</h4>
+          <pre style="background:var(--bg);padding:12px;border-radius:8px;font-size:12px;overflow-x:auto;max-height:200px;overflow-y:auto;border:1px solid var(--border);">${esc(generateBibTeXFromParsed(parsed))}</pre>
+        </div>
+
+        <div class="detail-section">
+          <div class="detail-actions">
+            <button class="btn btn-extract btn-small" onclick="copyExtractedBib(${index}, this)" title="复制此条目的 BibTeX">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path>
+              </svg>
+              复制 BibTeX
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// 复制提取模式的单个 BibTeX
+async function copyExtractedBib(index, button) {
+  const results = window.currentResults || [];
+  if (!results[index]) return;
+
+  const bibtex = generateBibTeXFromParsed(results[index].parsed);
+  const success = await copyToClipboard(bibtex);
+
+  if (success) {
+    const originalText = button.innerHTML;
+    button.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg> 已复制`;
+    setTimeout(() => button.innerHTML = originalText, 2000);
+  } else {
+    showToast("复制失败，请重试");
+  }
+}
 
 // 默认展开第一个结果
 window.toggleResult = toggleResult;
+window.copyBibTeX = copyBibTeX;
+window.copyExtractedBib = copyExtractedBib;
 </script>
 </body>
 </html>

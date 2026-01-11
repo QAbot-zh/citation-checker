@@ -1,1143 +1,2917 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-CN">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>引用真伪快速校验（OpenAlex + Crossref）</title>
-  <style>
-    :root {
-      --primary: #4f46e5;
-      --primary-light: #818cf8;
-      --success: #10b981;
-      --warning: #f59e0b;
-      --danger: #ef4444;
-      --bg: #f8fafc;
-      --card-bg: #ffffff;
-      --text: #1e293b;
-      --text-muted: #64748b;
-      --border: #e2e8f0;
-      --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    }
-
-    * { box-sizing: border-box; }
-
-    body {
-      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 24px 16px;
-      line-height: 1.6;
-      background: var(--bg);
-      color: var(--text);
-    }
-
-    .header {
-      text-align: center;
-      margin-bottom: 32px;
-    }
-
-    .header h1 {
-      font-size: 28px;
-      font-weight: 700;
-      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-      margin: 0 0 12px 0;
-    }
-
-    .header p {
-      color: var(--text-muted);
-      font-size: 14px;
-      max-width: 700px;
-      margin: 0 auto;
-    }
-
-    .card {
-      background: var(--card-bg);
-      border-radius: 16px;
-      padding: 24px;
-      box-shadow: var(--shadow);
-      margin-bottom: 20px;
-      border: 1px solid var(--border);
-    }
-
-    .card-title {
-      font-size: 16px;
-      font-weight: 600;
-      margin: 0 0 16px 0;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .input-section {
-      display: grid;
-      grid-template-columns: 1fr 360px;
-      gap: 20px;
-    }
-
-    @media (max-width: 768px) {
-      .input-section { grid-template-columns: 1fr; }
-    }
-
-    label {
-      display: block;
-      font-size: 14px;
-      font-weight: 500;
-      margin-bottom: 8px;
-      color: var(--text);
-    }
-
-    textarea, input[type="text"], input[type="email"] {
-      width: 100%;
-      padding: 12px 16px;
-      border: 2px solid var(--border);
-      border-radius: 12px;
-      font-size: 14px;
-      transition: all 0.2s ease;
-      background: var(--card-bg);
-      font-family: inherit;
-    }
-
-    textarea:focus, input:focus {
-      outline: none;
-      border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
-    }
-
-    textarea {
-      resize: vertical;
-      min-height: 180px;
-    }
-
-    .hint {
-      font-size: 12px;
-      color: var(--text-muted);
-      margin-top: 8px;
-    }
-
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 12px 24px;
-      border: none;
-      border-radius: 12px;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.25s ease;
-    }
-
-    .btn-primary {
-      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-      color: white;
-      box-shadow: 0 4px 14px 0 rgba(79, 70, 229, 0.35);
-    }
-
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px 0 rgba(79, 70, 229, 0.45);
-    }
-
-    .btn-primary:active {
-      transform: translateY(0);
-    }
-
-    .btn-primary:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    .btn-extract {
-      background: linear-gradient(135deg, #06b6d4 0%, #22d3ee 100%);
-      color: white;
-      box-shadow: 0 4px 14px 0 rgba(6, 182, 212, 0.35);
-    }
-
-    .btn-extract:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px 0 rgba(6, 182, 212, 0.45);
-    }
-
-    .btn-extract:active {
-      transform: translateY(0);
-    }
-
-    .btn-success {
-      background: linear-gradient(135deg, var(--success) 0%, #34d399 100%);
-      color: white;
-      box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.35);
-    }
-
-    .btn-success:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px 0 rgba(16, 185, 129, 0.45);
-    }
-
-    .btn-success:active {
-      transform: translateY(0);
-    }
-
-    .btn-copy {
-      background: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
-      color: white;
-      box-shadow: 0 4px 14px 0 rgba(249, 115, 22, 0.35);
-    }
-
-    .btn-copy:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px 0 rgba(249, 115, 22, 0.45);
-    }
-
-    .btn-copy:active {
-      transform: translateY(0);
-    }
-
-    .btn-secondary {
-      background: var(--card-bg);
-      color: var(--text);
-      border: 2px solid var(--border);
-    }
-
-    .btn-secondary:hover {
-      background: var(--bg);
-      border-color: #cbd5e1;
-    }
-
-    .btn-secondary:active {
-      transform: scale(0.98);
-    }
-
-    .btn-clear {
-      background: linear-gradient(135deg, #64748b 0%, #94a3b8 100%);
-      color: white;
-      box-shadow: 0 4px 14px 0 rgba(100, 116, 139, 0.35);
-    }
-
-    .btn-clear:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 20px 0 rgba(100, 116, 139, 0.45);
-    }
-
-    .btn-clear:active {
-      transform: translateY(0);
-    }
-
-    .actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 16px;
-    }
-
-    /* Progress Bar */
-    .progress-container {
-      display: none;
-      margin-bottom: 20px;
-    }
-
-    .progress-container.active {
-      display: block;
-    }
-
-    .progress-bar {
-      height: 8px;
-      background: var(--border);
-      border-radius: 4px;
-      overflow: hidden;
-    }
-
-    .progress-fill {
-      height: 100%;
-      background: linear-gradient(90deg, var(--primary), var(--primary-light));
-      border-radius: 4px;
-      transition: width 0.3s ease;
-      width: 0%;
-    }
-
-    .progress-text {
-      display: flex;
-      justify-content: space-between;
-      font-size: 13px;
-      color: var(--text-muted);
-      margin-top: 8px;
-    }
-
-    /* Summary Stats */
-    .summary {
-      display: none;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 16px;
-      margin-bottom: 20px;
-    }
-
-    .summary.active {
-      display: grid;
-    }
-
-    @media (max-width: 600px) {
-      .summary { grid-template-columns: repeat(2, 1fr); }
-    }
-
-    .stat-card {
-      background: var(--card-bg);
-      border-radius: 12px;
-      padding: 16px;
-      text-align: center;
-      border: 1px solid var(--border);
-      box-shadow: var(--shadow);
-    }
-
-    .stat-value {
-      font-size: 28px;
-      font-weight: 700;
-    }
-
-    .stat-label {
-      font-size: 13px;
-      color: var(--text-muted);
-      margin-top: 4px;
-    }
-
-    .stat-card.total .stat-value { color: var(--primary); }
-    .stat-card.high .stat-value { color: var(--success); }
-    .stat-card.medium .stat-value { color: var(--warning); }
-    .stat-card.low .stat-value { color: var(--danger); }
-
-    /* Result Items */
-    .result-item {
-      background: var(--card-bg);
-      border-radius: 12px;
-      margin-bottom: 16px;
-      border: 1px solid var(--border);
-      box-shadow: var(--shadow);
-      overflow: hidden;
-      animation: slideIn 0.3s ease;
-    }
-
-    @keyframes slideIn {
-      from {
-        opacity: 0;
-        transform: translateY(10px);
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>引用真伪快速校验（OpenAlex + Crossref）</title>
+    <style>
+      :root {
+        --primary: #4f46e5;
+        --primary-light: #818cf8;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --bg: #f8fafc;
+        --card-bg: #ffffff;
+        --text: #1e293b;
+        --text-muted: #64748b;
+        --border: #e2e8f0;
+        --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1),
+          0 2px 4px -2px rgb(0 0 0 / 0.1);
+        --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1),
+          0 4px 6px -4px rgb(0 0 0 / 0.1);
       }
-      to {
-        opacity: 1;
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica,
+          Arial, sans-serif;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 24px 16px;
+        line-height: 1.6;
+        background: var(--bg);
+        color: var(--text);
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 32px;
+      }
+
+      .header h1 {
+        font-size: 28px;
+        font-weight: 700;
+        background: linear-gradient(
+          135deg,
+          var(--primary) 0%,
+          var(--primary-light) 100%
+        );
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin: 0 0 12px 0;
+      }
+
+      .header p {
+        color: var(--text-muted);
+        font-size: 14px;
+        max-width: 700px;
+        margin: 0 auto;
+      }
+
+      .card {
+        background: var(--card-bg);
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: var(--shadow);
+        margin-bottom: 20px;
+        border: 1px solid var(--border);
+      }
+
+      .card-title {
+        font-size: 16px;
+        font-weight: 600;
+        margin: 0 0 16px 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .input-section {
+        display: grid;
+        grid-template-columns: 1fr 360px;
+        gap: 20px;
+      }
+
+      @media (max-width: 768px) {
+        .input-section {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      label {
+        display: block;
+        font-size: 14px;
+        font-weight: 500;
+        margin-bottom: 8px;
+        color: var(--text);
+      }
+
+      textarea,
+      input[type="text"],
+      input[type="email"] {
+        width: 100%;
+        padding: 12px 16px;
+        border: 2px solid var(--border);
+        border-radius: 12px;
+        font-size: 14px;
+        transition: all 0.2s ease;
+        background: var(--card-bg);
+        font-family: inherit;
+      }
+
+      textarea:focus,
+      input:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+      }
+
+      textarea {
+        resize: vertical;
+        min-height: 180px;
+      }
+
+      .hint {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-top: 8px;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 12px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.25s ease;
+      }
+
+      .btn-primary {
+        background: linear-gradient(
+          135deg,
+          var(--primary) 0%,
+          var(--primary-light) 100%
+        );
+        color: white;
+        box-shadow: 0 4px 14px 0 rgba(79, 70, 229, 0.35);
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px 0 rgba(79, 70, 229, 0.45);
+      }
+
+      .btn-primary:active {
         transform: translateY(0);
       }
-    }
 
-    .result-header {
-      padding: 16px 20px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      cursor: pointer;
-      user-select: none;
-      transition: background 0.2s;
-    }
+      .btn-primary:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+      }
 
-    .result-header:hover {
-      background: var(--bg);
-    }
+      .btn-extract {
+        background: linear-gradient(135deg, #06b6d4 0%, #22d3ee 100%);
+        color: white;
+        box-shadow: 0 4px 14px 0 rgba(6, 182, 212, 0.35);
+      }
 
-    .result-index {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      background: var(--bg);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 600;
-      font-size: 14px;
-      color: var(--text-muted);
-      flex-shrink: 0;
-    }
+      .btn-extract:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px 0 rgba(6, 182, 212, 0.45);
+      }
 
-    .result-title {
-      flex: 1;
-      font-size: 14px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
+      .btn-extract:active {
+        transform: translateY(0);
+      }
 
-    .result-score {
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 13px;
-      font-weight: 600;
-      flex-shrink: 0;
-    }
+      .btn-success {
+        background: linear-gradient(135deg, var(--success) 0%, #34d399 100%);
+        color: white;
+        box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.35);
+      }
 
-    .result-score.high {
-      background: rgba(16, 185, 129, 0.1);
-      color: var(--success);
-    }
+      .btn-success:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px 0 rgba(16, 185, 129, 0.45);
+      }
 
-    .result-score.medium {
-      background: rgba(245, 158, 11, 0.1);
-      color: var(--warning);
-    }
+      .btn-success:active {
+        transform: translateY(0);
+      }
 
-    .result-score.low {
-      background: rgba(239, 68, 68, 0.1);
-      color: var(--danger);
-    }
+      .btn-copy {
+        background: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
+        color: white;
+        box-shadow: 0 4px 14px 0 rgba(249, 115, 22, 0.35);
+      }
 
-    .result-toggle {
-      width: 24px;
-      height: 24px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--text-muted);
-      transition: transform 0.2s;
-    }
+      .btn-copy:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px 0 rgba(249, 115, 22, 0.45);
+      }
 
-    .result-item.expanded .result-toggle {
-      transform: rotate(180deg);
-    }
+      .btn-copy:active {
+        transform: translateY(0);
+      }
 
-    .result-details {
-      display: none;
-      padding: 0 20px 20px;
-      border-top: 1px solid var(--border);
-    }
+      .btn-secondary {
+        background: var(--card-bg);
+        color: var(--text);
+        border: 2px solid var(--border);
+      }
 
-    .result-item.expanded .result-details {
-      display: block;
-    }
+      .btn-secondary:hover {
+        background: var(--bg);
+        border-color: #cbd5e1;
+      }
 
-    .detail-section {
-      margin-top: 16px;
-    }
+      .btn-secondary:active {
+        transform: scale(0.98);
+      }
 
-    .detail-section h4 {
-      font-size: 14px;
-      font-weight: 600;
-      margin: 0 0 12px 0;
-      color: var(--text);
-    }
+      .btn-clear {
+        background: linear-gradient(135deg, #64748b 0%, #94a3b8 100%);
+        color: white;
+        box-shadow: 0 4px 14px 0 rgba(100, 116, 139, 0.35);
+      }
 
-    .detail-grid {
-      display: grid;
-      grid-template-columns: 120px 1fr;
-      gap: 8px 16px;
-      font-size: 13px;
-    }
+      .btn-clear:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px 0 rgba(100, 116, 139, 0.45);
+      }
 
-    .detail-label {
-      color: var(--text-muted);
-    }
+      .btn-clear:active {
+        transform: translateY(0);
+      }
 
-    .detail-value {
-      color: var(--text);
-      word-break: break-word;
-    }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 16px;
+      }
 
-    .detail-value a {
-      color: var(--primary);
-      text-decoration: none;
-    }
+      .progress-container {
+        display: none;
+        margin-bottom: 20px;
+      }
 
-    .detail-value a:hover {
-      text-decoration: underline;
-    }
+      .progress-container.active {
+        display: block;
+      }
 
-    .source-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 4px 10px;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 500;
-      margin-right: 8px;
-    }
+      .progress-bar {
+        height: 8px;
+        background: var(--border);
+        border-radius: 4px;
+        overflow: hidden;
+      }
 
-    .source-badge.openalex {
-      background: rgba(79, 70, 229, 0.1);
-      color: var(--primary);
-    }
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          var(--primary),
+          var(--primary-light)
+        );
+        border-radius: 4px;
+        transition: width 0.3s ease;
+        width: 0%;
+      }
 
-    .source-badge.crossref {
-      background: rgba(245, 158, 11, 0.1);
-      color: var(--warning);
-    }
+      .progress-text {
+        display: flex;
+        justify-content: space-between;
+        font-size: 13px;
+        color: var(--text-muted);
+        margin-top: 8px;
+      }
 
-    .score-inline {
-      font-size: 12px;
-      color: var(--text-muted);
-    }
+      .summary {
+        display: none;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 16px;
+        margin-bottom: 20px;
+      }
 
-    .empty-state {
-      text-align: center;
-      padding: 60px 20px;
-      color: var(--text-muted);
-    }
+      .summary.active {
+        display: grid;
+      }
 
-    .empty-state svg {
-      width: 64px;
-      height: 64px;
-      margin-bottom: 16px;
-      opacity: 0.5;
-    }
+      @media (max-width: 600px) {
+        .summary {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
 
-    .loading-spinner {
-      display: inline-block;
-      width: 16px;
-      height: 16px;
-      border: 2px solid rgba(255,255,255,0.3);
-      border-radius: 50%;
-      border-top-color: white;
-      animation: spin 0.8s linear infinite;
-    }
+      .stat-card {
+        background: var(--card-bg);
+        border-radius: 12px;
+        padding: 16px;
+        text-align: center;
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
+      }
 
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
+      .stat-value {
+        font-size: 28px;
+        font-weight: 700;
+      }
 
-    .processing-item {
-      background: linear-gradient(90deg, var(--bg) 25%, var(--card-bg) 50%, var(--bg) 75%);
-      background-size: 200% 100%;
-      animation: shimmer 1.5s infinite;
-      border-radius: 12px;
-      padding: 16px 20px;
-      margin-bottom: 16px;
-      border: 1px solid var(--border);
-    }
+      .stat-label {
+        font-size: 13px;
+        color: var(--text-muted);
+        margin-top: 4px;
+      }
 
-    @keyframes shimmer {
-      0% { background-position: 200% 0; }
-      100% { background-position: -200% 0; }
-    }
+      .stat-card.total .stat-value {
+        color: var(--primary);
+      }
+      .stat-card.high .stat-value {
+        color: var(--success);
+      }
+      .stat-card.medium .stat-value {
+        color: var(--warning);
+      }
+      .stat-card.low .stat-value {
+        color: var(--danger);
+      }
 
-    /* Verdict bar */
-    .verdict-bar {
-      display: flex;
-      gap: 8px;
-      margin-top: 12px;
-    }
+      .result-item {
+        background: var(--card-bg);
+        border-radius: 12px;
+        margin-bottom: 16px;
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
+        overflow: hidden;
+        animation: slideIn 0.3s ease;
+      }
 
-    .verdict-segment {
-      flex: 1;
-      height: 4px;
-      border-radius: 2px;
-      background: var(--border);
-    }
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
 
-    .verdict-segment.active.high { background: var(--success); }
-    .verdict-segment.active.medium { background: var(--warning); }
-    .verdict-segment.active.low { background: var(--danger); }
+      .result-header {
+        padding: 16px 20px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        cursor: pointer;
+        user-select: none;
+        transition: background 0.2s;
+      }
 
-    /* Detail actions */
-    .detail-actions {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
+      .result-header:hover {
+        background: var(--bg);
+      }
 
-    .btn-small {
-      padding: 9px 18px;
-      font-size: 13px;
-      gap: 6px;
-      border-radius: 10px;
-    }
+      .result-index {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        background: var(--bg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 14px;
+        color: var(--text-muted);
+        flex-shrink: 0;
+      }
 
-    .export-section {
-      display: none;
-      align-items: center;
-      justify-content: center;
-      gap: 16px;
-      margin: 20px 0;
-      flex-wrap: wrap;
-    }
+      .result-title {
+        flex: 1;
+        font-size: 14px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
 
-    .export-section.active {
-      display: flex;
-    }
+      .result-score {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 600;
+        flex-shrink: 0;
+      }
 
-    .export-selector {
-      display: flex;
-      background: var(--bg);
-      border-radius: 10px;
-      padding: 4px;
-      border: 2px solid var(--success);
-      box-shadow: 0 4px 12px 0 rgba(16, 185, 129, 0.15);
-    }
+      .result-score.high {
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--success);
+      }
 
-    .export-option {
-      padding: 10px 24px;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.25s ease;
-      color: var(--text-muted);
-      user-select: none;
-      position: relative;
-    }
+      .result-score.medium {
+        background: rgba(245, 158, 11, 0.1);
+        color: var(--warning);
+      }
 
-    .export-option:hover {
-      color: var(--text);
-      background: rgba(16, 185, 129, 0.1);
-    }
+      .result-score.low {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--danger);
+      }
 
-    .export-option.active {
-      background: linear-gradient(135deg, var(--success) 0%, #34d399 100%);
-      color: white;
-      box-shadow: 0 2px 8px 0 rgba(16, 185, 129, 0.3);
-    }
+      .result-toggle {
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-muted);
+        transition: transform 0.2s;
+      }
 
-    .toast {
-      position: fixed;
-      bottom: 80px;
-      left: 50%;
-      transform: translateX(-50%) translateY(100px);
-      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-      color: white;
-      padding: 14px 28px;
-      border-radius: 12px;
-      font-size: 15px;
-      font-weight: 500;
-      opacity: 0;
-      transition: all 0.3s ease;
-      z-index: 1000;
-      box-shadow: 0 8px 24px 0 rgba(79, 70, 229, 0.4);
-    }
+      .result-item.expanded .result-toggle {
+        transform: rotate(180deg);
+      }
 
-    .toast.show {
-      transform: translateX(-50%) translateY(0);
-      opacity: 1;
-    }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <h1>引用真伪快速校验</h1>
-    <p>通过 OpenAlex 与 Crossref 双数据源交叉验证，智能解析引用字段并评估可信度。支持批量校验，每行一条引用。</p>
-  </div>
+      .result-details {
+        display: none;
+        padding: 0 20px 20px;
+        border-top: 1px solid var(--border);
+      }
 
-  <div class="card">
-    <div class="input-section">
-      <div>
-        <label for="citation">粘贴引用条目（支持多条，每行一条）</label>
-        <textarea id="citation" placeholder="在此粘贴引用条目，每行一条..."></textarea>
-        <div class="hint">提示：每行粘贴一条引用，系统将逐条校验并汇总结果。空行会被自动忽略。</div>
-      </div>
-      <div>
-        <label for="mailto">联系邮箱（可选）</label>
-        <input type="email" id="mailto" placeholder="you@example.com" />
-        <div class="hint">提供邮箱可进入 OpenAlex/Crossref 的 polite pool，获得更稳定的响应。</div>
+      .result-item.expanded .result-details {
+        display: block;
+      }
 
-        <div class="actions">
-          <button id="run" class="btn btn-primary" title="调用 OpenAlex 和 Crossref API 校验引用真实性">
-            开始校验
-          </button>
-          <button id="extractBib" class="btn btn-extract" title="直接解析引用生成 BibTeX，不调用 API">
-            生成 BibTeX
-          </button>
-          <button id="clear" class="btn btn-clear" title="清空输入和结果">
-            清空
-          </button>
+      .detail-section {
+        margin-top: 16px;
+      }
+
+      .detail-section h4 {
+        font-size: 14px;
+        font-weight: 600;
+        margin: 0 0 12px 0;
+        color: var(--text);
+      }
+
+      .detail-grid {
+        display: grid;
+        grid-template-columns: 120px 1fr;
+        gap: 8px 16px;
+        font-size: 13px;
+      }
+
+      .detail-label {
+        color: var(--text-muted);
+      }
+
+      .detail-value {
+        color: var(--text);
+        word-break: break-word;
+      }
+
+      .detail-value a {
+        color: var(--primary);
+        text-decoration: none;
+      }
+
+      .detail-value a:hover {
+        text-decoration: underline;
+      }
+
+      .source-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 500;
+        margin-right: 8px;
+      }
+
+      .source-badge.openalex {
+        background: rgba(79, 70, 229, 0.1);
+        color: var(--primary);
+      }
+
+      .source-badge.crossref {
+        background: rgba(245, 158, 11, 0.1);
+        color: var(--warning);
+      }
+
+      .score-inline {
+        font-size: 12px;
+        color: var(--text-muted);
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--text-muted);
+      }
+
+      .empty-state svg {
+        width: 64px;
+        height: 64px;
+        margin-bottom: 16px;
+        opacity: 0.5;
+      }
+
+      .loading-spinner {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: white;
+        animation: spin 0.8s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .processing-item {
+        background: linear-gradient(
+          90deg,
+          var(--bg) 25%,
+          var(--card-bg) 50%,
+          var(--bg) 75%
+        );
+        background-size: 200% 100%;
+        animation: shimmer 1.5s infinite;
+        border-radius: 12px;
+        padding: 16px 20px;
+        margin-bottom: 16px;
+        border: 1px solid var(--border);
+      }
+
+      @keyframes shimmer {
+        0% {
+          background-position: 200% 0;
+        }
+        100% {
+          background-position: -200% 0;
+        }
+      }
+
+      .verdict-bar {
+        display: flex;
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .verdict-segment {
+        flex: 1;
+        height: 4px;
+        border-radius: 2px;
+        background: var(--border);
+      }
+
+      .verdict-segment.active.high {
+        background: var(--success);
+      }
+      .verdict-segment.active.medium {
+        background: var(--warning);
+      }
+      .verdict-segment.active.low {
+        background: var(--danger);
+      }
+
+      .detail-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+
+      .btn-small {
+        padding: 9px 18px;
+        font-size: 13px;
+        gap: 6px;
+        border-radius: 10px;
+      }
+
+      .export-section {
+        display: none;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        margin: 20px 0;
+        flex-wrap: wrap;
+      }
+
+      .export-section.active {
+        display: flex;
+      }
+
+      .export-selector {
+        display: flex;
+        background: var(--bg);
+        border-radius: 10px;
+        padding: 4px;
+        border: 2px solid var(--success);
+        box-shadow: 0 4px 12px 0 rgba(16, 185, 129, 0.15);
+      }
+
+      .export-option {
+        padding: 10px 24px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.25s ease;
+        color: var(--text-muted);
+        user-select: none;
+        position: relative;
+      }
+
+      .export-option:hover {
+        color: var(--text);
+        background: rgba(16, 185, 129, 0.1);
+      }
+
+      .export-option.active {
+        background: linear-gradient(135deg, var(--success) 0%, #34d399 100%);
+        color: white;
+        box-shadow: 0 2px 8px 0 rgba(16, 185, 129, 0.3);
+      }
+
+      .toast {
+        position: fixed;
+        bottom: 80px;
+        left: 50%;
+        transform: translateX(-50%) translateY(100px);
+        background: linear-gradient(
+          135deg,
+          var(--primary) 0%,
+          var(--primary-light) 100%
+        );
+        color: white;
+        padding: 14px 28px;
+        border-radius: 12px;
+        font-size: 15px;
+        font-weight: 500;
+        opacity: 0;
+        transition: all 0.3s ease;
+        z-index: 1000;
+        box-shadow: 0 8px 24px 0 rgba(79, 70, 229, 0.4);
+      }
+
+      .toast.show {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>引用真伪快速校验</h1>
+      <p>
+        通过 OpenAlex 与 Crossref
+        双数据源交叉验证，智能解析引用字段并评估可信度。支持批量校验，每行一条引用。
+      </p>
+      <p style="font-size: 12px; margin-top: 8px; color: var(--text-muted)">
+        📚 支持格式：GB/T
+        7714（中文知网）、APA、MLA、Chicago、Harvard、IEEE、Vancouver、Nature、Science、BibTeX
+        等
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="input-section">
+        <div>
+          <label for="citation">粘贴引用条目（支持多条，每行一条）</label>
+          <textarea
+            id="citation"
+            placeholder='支持多种格式，每行一条引用，例如：
+
+GB/T 7714: 张三, 李四. 论文标题[J]. 期刊名, 2023, 15(3): 100-110.
+APA: Smith, J. A. (2023). Title of article. Journal Name, 15(3), 100-110.
+IEEE: [1] J. Smith, "Article title," Journal, vol. 15, no. 3, pp. 100-110, 2023.
+Vancouver: Smith JA. Article title. Journal. 2023;15(3):100-110.
+Nature: Smith, J. et al. Article title. Nature 600, 100-110 (2023).
+DOI: 10.1000/xyz123'
+          ></textarea>
+          <div class="hint">
+            提示：每行粘贴一条引用，系统将逐条校验并汇总结果。空行会被自动忽略。
+          </div>
+        </div>
+        <div>
+          <label for="mailto">联系邮箱（可选）</label>
+          <input type="email" id="mailto" placeholder="you@example.com" />
+          <div class="hint">
+            提供邮箱可进入 OpenAlex/Crossref 的 polite pool，获得更稳定的响应。
+          </div>
+
+          <div class="actions">
+            <button
+              id="run"
+              class="btn btn-primary"
+              title="调用 OpenAlex 和 Crossref API 校验引用真实性"
+            >
+              开始校验
+            </button>
+            <button
+              id="extractBib"
+              class="btn btn-extract"
+              title="直接解析引用生成 BibTeX，不调用 API"
+            >
+              生成 BibTeX
+            </button>
+            <button id="clear" class="btn btn-clear" title="清空输入和结果">
+              清空
+            </button>
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <div id="progress" class="progress-container">
-    <div class="card" style="padding: 16px 20px;">
-      <div class="progress-bar">
-        <div class="progress-fill" id="progressFill"></div>
+    <div id="progress" class="progress-container">
+      <div class="card" style="padding: 16px 20px">
+        <div class="progress-bar">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="progress-text">
+          <span id="progressStatus">正在校验...</span>
+          <span id="progressCount">0 / 0</span>
+        </div>
       </div>
-      <div class="progress-text">
-        <span id="progressStatus">正在校验...</span>
-        <span id="progressCount">0 / 0</span>
+    </div>
+
+    <div id="summary" class="summary">
+      <div class="stat-card total">
+        <div class="stat-value" id="statTotal">0</div>
+        <div class="stat-label">总条目</div>
+      </div>
+      <div class="stat-card high">
+        <div class="stat-value" id="statHigh">0</div>
+        <div class="stat-label">高可信</div>
+      </div>
+      <div class="stat-card medium">
+        <div class="stat-value" id="statMedium">0</div>
+        <div class="stat-label">中可信</div>
+      </div>
+      <div class="stat-card low">
+        <div class="stat-value" id="statLow">0</div>
+        <div class="stat-label">低可信</div>
       </div>
     </div>
-  </div>
 
-  <div id="summary" class="summary">
-    <div class="stat-card total">
-      <div class="stat-value" id="statTotal">0</div>
-      <div class="stat-label">总条目</div>
+    <div id="exportSection" class="export-section">
+      <div class="export-selector">
+        <div class="export-option active" data-value="all">全部</div>
+        <div class="export-option" data-value="high">高可信</div>
+      </div>
+      <button id="exportBib" class="btn btn-primary" title="下载 BibTeX 文件">
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+        >
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        下载 BibTeX
+      </button>
+      <button id="copyBib" class="btn btn-copy" title="复制 BibTeX 到剪贴板">
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.5"
+        >
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path>
+        </svg>
+        复制 BibTeX
+      </button>
     </div>
-    <div class="stat-card high">
-      <div class="stat-value" id="statHigh">0</div>
-      <div class="stat-label">高可信</div>
-    </div>
-    <div class="stat-card medium">
-      <div class="stat-value" id="statMedium">0</div>
-      <div class="stat-label">中可信</div>
-    </div>
-    <div class="stat-card low">
-      <div class="stat-value" id="statLow">0</div>
-      <div class="stat-label">低可信</div>
-    </div>
-  </div>
 
-  <div id="exportSection" class="export-section">
-    <div class="export-selector">
-      <div class="export-option active" data-value="all">全部</div>
-      <div class="export-option" data-value="high">高可信</div>
-    </div>
-    <button id="exportBib" class="btn btn-primary" title="下载 BibTeX 文件">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path>
-        <polyline points="7 10 12 15 17 10"></polyline>
-        <line x1="12" y1="15" x2="12" y2="3"></line>
-      </svg>
-      下载 BibTeX
-    </button>
-    <button id="copyBib" class="btn btn-copy" title="复制 BibTeX 到剪贴板">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-        <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path>
-      </svg>
-      复制 BibTeX
-    </button>
-  </div>
+    <div id="results"></div>
 
-  <div id="results"></div>
+    <div id="toast" class="toast">已复制到剪贴板</div>
 
-  <div id="toast" class="toast">已复制到剪贴板</div>
-
-<script>
-/** ---------- 工具函数 ---------- */
-function norm(s) {
-  return (s || "").toLowerCase()
-    .replace(/[\[\]\(\)\{\},.:;'"`~!@#$%^&*_+=<>?/\\|-]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function tokens(s) {
-  return new Set(norm(s).split(" ").filter(Boolean));
-}
-
-function jaccard(a, b) {
-  const A = tokens(a), B = tokens(b);
-  if (A.size === 0 || B.size === 0) return 0;
-  let inter = 0;
-  for (const t of A) if (B.has(t)) inter++;
-  const union = A.size + B.size - inter;
-  return inter / union;
-}
-
-function pickBest(items, scoreFn) {
-  let best = null, bestScore = -1;
-  for (const it of items) {
-    const sc = scoreFn(it);
-    if (sc > bestScore) { best = it; bestScore = sc; }
-  }
-  return { best, bestScore };
-}
-
-function esc(s) {
-  return (s ?? "").toString().replace(/[&<>"']/g, m => ({
-    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
-  }[m]));
-}
-
-/** ---------- BibTeX 生成 ---------- */
-// 仅基于解析的引用生成 BibTeX（不调用 API）
-function generateBibTeXFromParsed(parsed) {
-  const type = parsed.journal ? 'article' : 'book';
-  const year = parsed.year || 'n.d.';
-  const title = parsed.title || '';
-  const journal = parsed.journal || '';
-  const volume = parsed.volume || '';
-  const number = parsed.issue || '';
-  const pages = (parsed.firstPage && parsed.lastPage)
-    ? `${parsed.firstPage}--${parsed.lastPage}`
-    : (parsed.firstPage || '');
-
-  const doi = parsed.doi || '';
-  const url = doi ? `https://doi.org/${doi}` : '';
-
-  // 处理作者
-  const authors = (parsed.authors || []).map(a => {
-    // 假设作者已经是姓氏格式，直接使用
-    return a;
-  });
-
-  const authorStr = authors.length > 0
-    ? authors.join(' and\n  ')
-    : '';
-
-  // 生成 citation key
-  let firstAuthor = authors[0] || 'Unknown';
-  const firstWord = (title || '').split(/\s+/)[0] || '';
-  const cleanWord = firstWord.replace(/[^a-zA-Z0-9]/g, '');
-  const citeKey = `${firstAuthor}${year}${cleanWord}`;
-
-  let bibtex = `@${type}{${citeKey},
-`;
-
-  if (authorStr) bibtex += `  author = {${authorStr}},
-`;
-  if (title) bibtex += `  title = {${title}},
-`;
-  if (journal) bibtex += `  journal = {${journal}},
-`;
-  if (year) bibtex += `  year = {${year}},
-`;
-  if (volume) bibtex += `  volume = {${volume}},
-`;
-  if (number) bibtex += `  number = {${number}},
-`;
-  if (pages) bibtex += `  pages = {${pages}},
-`;
-  if (doi) bibtex += `  doi = {${doi}},
-`;
-  if (url) bibtex += `  url = {${url}},
-`;
-
-  // 移除末尾逗号
-  bibtex = bibtex.replace(/,\n$/, '\n');
-  bibtex += '}';
-
-  return bibtex;
-}
-
-// 从 OpenAlex/Crossref 数据生成 BibTeX
-function generateBibTeX(result) {
-  const { parsed, oaBest, crBest } = result;
-  const oa = oaBest?.best;
-  const cr = crBest?.best;
-
-  // 优先使用 API 返回的原始 BibTeX
-  const rawBib = oa?.biblio?.raw || cr?.["bibliographic-metadata"]?.raw;
-  if (rawBib && typeof rawBib === 'string' && rawBib.trim().startsWith('@')) {
-    // 提取 citation key
-    const entryMatch = rawBib.match(/@(\w+)\s*\{([^,]+),/);
-    if (entryMatch) {
-      return rawBib.trim();
-    }
-  }
-
-  // 自行构建 BibTeX
-  const type = parsed.journal ? 'article' : 'book';
-  const year = oa?.publication_year || cr?.issued?.["date-parts"]?.[0]?.[0] || parsed.year || 'n.d.';
-  const title = oa?.title || (cr?.title?.[0]) || parsed.title || '';
-
-  // 提取作者
-  let authors = [];
-  if (oa?.authorships) {
-    authors = oa.authorships.map(a => {
-      const name = a.author?.display_name || '';
-      const parts = name.trim().split(/\s+/);
-      if (parts.length >= 2) {
-        const last = parts[parts.length - 1];
-        const first = parts.slice(0, -1).join(' ');
-        return `${last}, ${first}`;
+    <script>
+      function norm(s) {
+        return (s || "")
+          .toLowerCase()
+          .replace(/[\[\]\(\)\{\},.:;'"`~!@#$%^&*_+=<>?/\\|-]/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
       }
-      return name;
-    });
-  } else if (cr?.author) {
-    authors = cr.author.map(a => {
-      const family = a.family || '';
-      const given = a.given || '';
-      return family ? (given ? `${family}, ${given}` : family) : '';
-    }).filter(Boolean);
-  } else if (parsed.authors?.length) {
-    authors = parsed.authors;
-  }
 
-  const authorStr = authors.length > 0
-    ? authors.join(' and\n  ')
-    : '';
+      function tokens(s) {
+        return new Set(norm(s).split(" ").filter(Boolean));
+      }
 
-  const journal = oa?.primary_location?.source?.display_name ||
-                  (cr?.["container-title"]?.[0]) ||
-                  parsed.journal ||
-                  '';
+      function jaccard(a, b) {
+        const A = tokens(a),
+          B = tokens(b);
+        if (A.size === 0 || B.size === 0) return 0;
+        let inter = 0;
+        for (const t of A) if (B.has(t)) inter++;
+        const union = A.size + B.size - inter;
+        return inter / union;
+      }
 
-  const volume = oa?.biblio?.volume || cr?.volume || parsed.volume || '';
-  const number = oa?.biblio?.issue || cr?.issue || parsed.issue || '';
-  const pages = (oa?.biblio?.first_page && oa?.biblio?.last_page)
-    ? `${oa.biblio.first_page}--${oa.biblio.last_page}`
-    : (cr?.page || parsed.firstPage
-      ? (parsed.firstPage && parsed.lastPage ? `${parsed.firstPage}--${parsed.lastPage}` : (cr?.page || ''))
-      : '');
+      function pickBest(items, scoreFn) {
+        let best = null,
+          bestScore = -1;
+        for (const it of items) {
+          const sc = scoreFn(it);
+          if (sc > bestScore) {
+            best = it;
+            bestScore = sc;
+          }
+        }
+        return { best, bestScore };
+      }
 
-  const doi = oa?.doi || cr?.DOI || parsed.doi || '';
-  const url = oa?.id || (doi ? `https://doi.org/${doi}` : '');
+      function esc(s) {
+        return (s ?? "").toString().replace(
+          /[&<>"']/g,
+          (m) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            }[m])
+        );
+      }
 
-  // 生成 citation key: 第一作者姓氏+年份+首词
-  let firstAuthor = authors[0] || '';
-  if (firstAuthor.includes(',')) {
-    firstAuthor = firstAuthor.split(',')[0].trim();
-  }
-  const firstWord = (title || '').split(/\s+/)[0] || '';
-  const cleanWord = firstWord.replace(/[^a-zA-Z0-9]/g, '');
-  const citeKey = `${firstAuthor}${year}${cleanWord}`;
+      // 仅基于解析的引用生成 BibTeX（不调用 API）
+      function generateBibTeXFromParsed(parsed) {
+        // 判断类型：arXiv 预印本、期刊文章、书籍等
+        let type = "article";
+        if (parsed.arxivId) {
+          type = "misc"; // arXiv 预印本通常用 misc 或 article
+        } else if (!parsed.journal && !parsed.volume) {
+          type = "book";
+        }
 
-  let bibtex = `@${type}{${citeKey},
+        const year = parsed.year || "n.d.";
+        const title = parsed.title || "";
+        const journal = parsed.journal || "";
+        const volume = parsed.volume || "";
+        const number = parsed.issue || "";
+        // 处理页码：如果有文章编号但没有页码范围，使用文章编号
+        let pages = "";
+        if (parsed.firstPage && parsed.lastPage) {
+          pages = `${parsed.firstPage}--${parsed.lastPage}`;
+        } else if (parsed.articleNumber) {
+          pages = parsed.articleNumber;
+        } else if (parsed.firstPage) {
+          pages = parsed.firstPage;
+        }
+
+        const doi = parsed.doi || "";
+        const arxivId = parsed.arxivId || "";
+        let url = "";
+        if (doi) {
+          url = `https://doi.org/${doi}`;
+        } else if (arxivId) {
+          url = `https://arxiv.org/abs/${arxivId}`;
+        }
+
+        // 处理作者
+        const authors = (parsed.authors || []).map((a) => {
+          // 假设作者已经是姓氏格式，直接使用
+          return a;
+        });
+
+        const authorStr = authors.length > 0 ? authors.join(" and\n  ") : "";
+
+        // 生成 citation key
+        let firstAuthor = authors[0] || "Unknown";
+        const firstWord = (title || "").split(/\s+/)[0] || "";
+        const cleanWord = firstWord.replace(/[^a-zA-Z0-9]/g, "");
+        const citeKey = `${firstAuthor}${year}${cleanWord}`;
+
+        let bibtex = `@${type}{${citeKey},
 `;
 
-  if (authorStr) bibtex += `  author = {${authorStr}},
+        if (authorStr)
+          bibtex += `  author = {${authorStr}},
 `;
-  if (title) bibtex += `  title = {${title}},
+        if (title)
+          bibtex += `  title = {${title}},
 `;
-  if (journal) bibtex += `  journal = {${journal}},
+        if (journal && type === "article")
+          bibtex += `  journal = {${journal}},
 `;
-  if (year) bibtex += `  year = {${year}},
+        if (journal && type !== "article")
+          bibtex += `  howpublished = {${journal}},
 `;
-  if (volume) bibtex += `  volume = {${volume}},
+        if (year)
+          bibtex += `  year = {${year}},
 `;
-  if (number) bibtex += `  number = {${number}},
+        if (volume)
+          bibtex += `  volume = {${volume}},
 `;
-  if (pages) bibtex += `  pages = {${pages}},
+        if (number)
+          bibtex += `  number = {${number}},
 `;
-  if (doi) bibtex += `  doi = {${doi}},
+        if (pages)
+          bibtex += `  pages = {${pages}},
 `;
-  if (url) bibtex += `  url = {${url}},
+        if (doi)
+          bibtex += `  doi = {${doi}},
+`;
+        if (arxivId)
+          bibtex += `  eprint = {${arxivId}},
+  archivePrefix = {arXiv},
+`;
+        if (url)
+          bibtex += `  url = {${url}},
 `;
 
-  // 移除末尾逗号
-  bibtex = bibtex.replace(/,\n$/, '\n');
-  bibtex += '}';
+        // 移除末尾逗号
+        bibtex = bibtex.replace(/,\n$/, "\n");
+        bibtex += "}";
 
-  return bibtex;
-}
+        return bibtex;
+      }
 
-// 复制到剪贴板
-async function copyToClipboard(text) {
-  try {
-    await navigator.clipboard.writeText(text);
-    return true;
-  } catch (e) {
-    // 回退方案
-    const textarea = document.createElement('textarea');
-    textarea.value = text;
-    textarea.style.position = 'fixed';
-    textarea.style.opacity = '0';
-    document.body.appendChild(textarea);
-    textarea.select();
-    try {
-      document.execCommand('copy');
-      document.body.removeChild(textarea);
-      return true;
-    } catch (e2) {
-      document.body.removeChild(textarea);
-      return false;
-    }
-  }
-}
+      // 从 OpenAlex/Crossref 数据生成 BibTeX
+      function generateBibTeX(result) {
+        const { parsed, oaBest, crBest } = result;
+        const oa = oaBest?.best;
+        const cr = crBest?.best;
 
-// 下载文件
-function downloadFile(content, filename) {
-  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
+        // 优先使用 API 返回的原始 BibTeX
+        const rawBib = oa?.biblio?.raw || cr?.["bibliographic-metadata"]?.raw;
+        if (
+          rawBib &&
+          typeof rawBib === "string" &&
+          rawBib.trim().startsWith("@")
+        ) {
+          // 提取 citation key
+          const entryMatch = rawBib.match(/@(\w+)\s*\{([^,]+),/);
+          if (entryMatch) {
+            return rawBib.trim();
+          }
+        }
 
-/** ---------- 解析引用 ---------- */
-function parseCitation(raw) {
-  const s = raw.trim();
+        // 自行构建 BibTeX
+        const type = parsed.journal ? "article" : "book";
+        const year =
+          oa?.publication_year ||
+          cr?.issued?.["date-parts"]?.[0]?.[0] ||
+          parsed.year ||
+          "n.d.";
+        const title = oa?.title || cr?.title?.[0] || parsed.title || "";
 
-  const yearMatch = s.match(/\b(19|20)\d{2}\b/);
-  const year = yearMatch ? parseInt(yearMatch[0], 10) : null;
+        // 提取作者
+        let authors = [];
+        if (oa?.authorships) {
+          authors = oa.authorships.map((a) => {
+            const name = a.author?.display_name || "";
+            const parts = name.trim().split(/\s+/);
+            if (parts.length >= 2) {
+              const last = parts[parts.length - 1];
+              const first = parts.slice(0, -1).join(" ");
+              return `${last}, ${first}`;
+            }
+            return name;
+          });
+        } else if (cr?.author) {
+          authors = cr.author
+            .map((a) => {
+              const family = a.family || "";
+              const given = a.given || "";
+              return family ? (given ? `${family}, ${given}` : family) : "";
+            })
+            .filter(Boolean);
+        } else if (parsed.authors?.length) {
+          authors = parsed.authors;
+        }
 
-  const doiMatch = s.match(/\b10\.\d{4,9}\/[-._;()/:A-Z0-9]+\b/i);
-  const doi = doiMatch ? doiMatch[0] : null;
+        const authorStr = authors.length > 0 ? authors.join(" and\n  ") : "";
 
-  let title = null;
-  const jIdx = s.indexOf("[J]");
-  const mIdx = s.indexOf("[M]");
-  const typeIdx = jIdx !== -1 ? jIdx : mIdx;
+        const journal =
+          oa?.primary_location?.source?.display_name ||
+          cr?.["container-title"]?.[0] ||
+          parsed.journal ||
+          "";
 
-  if (typeIdx !== -1) {
-    const beforeType = s.slice(0, typeIdx);
-    const firstDot = beforeType.indexOf(". ");
-    if (firstDot !== -1) title = beforeType.slice(firstDot + 2).trim();
-  }
-  if (!title) {
-    const parts = s.split(".");
-    if (parts.length >= 3) title = parts[1].trim();
-  }
+        const volume = oa?.biblio?.volume || cr?.volume || parsed.volume || "";
+        const number = oa?.biblio?.issue || cr?.issue || parsed.issue || "";
+        const pages =
+          oa?.biblio?.first_page && oa?.biblio?.last_page
+            ? `${oa.biblio.first_page}--${oa.biblio.last_page}`
+            : cr?.page || parsed.firstPage
+            ? parsed.firstPage && parsed.lastPage
+              ? `${parsed.firstPage}--${parsed.lastPage}`
+              : cr?.page || ""
+            : "";
 
-  let journal = null;
-  if (typeIdx !== -1) {
-    const after = s.slice(typeIdx + 3);
-    const dot = after.indexOf(".");
-    const chunk = dot !== -1 ? after.slice(dot + 1) : after;
-    journal = chunk.split(",")[0].trim();
-    if (!journal) journal = null;
-  }
+        const doi = oa?.doi || cr?.DOI || parsed.doi || "";
+        const url = oa?.id || (doi ? `https://doi.org/${doi}` : "");
 
-  let volume = null, issue = null;
-  const vi = s.match(/,\s*\d{4}\s*,\s*([0-9A-Za-z]+)\s*\(\s*([0-9A-Za-z]+)\s*\)/);
-  if (vi) {
-    volume = vi[1]; issue = vi[2];
-  } else {
-    const vOnly = s.match(/,\s*\d{4}\s*,\s*([0-9A-Za-z]+)\b/);
-    if (vOnly) volume = vOnly[1];
-  }
+        // 生成 citation key: 第一作者姓氏+年份+首词
+        let firstAuthor = authors[0] || "";
+        if (firstAuthor.includes(",")) {
+          firstAuthor = firstAuthor.split(",")[0].trim();
+        }
+        const firstWord = (title || "").split(/\s+/)[0] || "";
+        const cleanWord = firstWord.replace(/[^a-zA-Z0-9]/g, "");
+        const citeKey = `${firstAuthor}${year}${cleanWord}`;
 
-  let firstPage = null, lastPage = null;
-  const pp = s.match(/:\s*(\d+)\s*[-–—]\s*(\d+)\b/);
-  if (pp) { firstPage = pp[1]; lastPage = pp[2]; }
+        let bibtex = `@${type}{${citeKey},
+`;
 
-  let authors = [];
-  const firstDot = s.indexOf(".");
-  if (firstDot !== -1) {
-    const aPart = s.slice(0, firstDot);
-    authors = aPart.split(",").map(x => x.trim()).filter(Boolean).map(one => {
-      return one.split(/\s+/)[0];
-    });
-  }
+        if (authorStr)
+          bibtex += `  author = {${authorStr}},
+`;
+        if (title)
+          bibtex += `  title = {${title}},
+`;
+        if (journal)
+          bibtex += `  journal = {${journal}},
+`;
+        if (year)
+          bibtex += `  year = {${year}},
+`;
+        if (volume)
+          bibtex += `  volume = {${volume}},
+`;
+        if (number)
+          bibtex += `  number = {${number}},
+`;
+        if (pages)
+          bibtex += `  pages = {${pages}},
+`;
+        if (doi)
+          bibtex += `  doi = {${doi}},
+`;
+        if (url)
+          bibtex += `  url = {${url}},
+`;
 
-  return { raw: s, year, doi, title, journal, volume, issue, firstPage, lastPage, authors };
-}
+        // 移除末尾逗号
+        bibtex = bibtex.replace(/,\n$/, "\n");
+        bibtex += "}";
 
-/** ---------- API 查询 ---------- */
-async function queryOpenAlex(p, mailto) {
-  let url = new URL("https://api.openalex.org/works");
-  url.searchParams.set("per-page", "25");
-  if (mailto) url.searchParams.set("mailto", mailto);
+        return bibtex;
+      }
 
-  if (p.doi) {
-    url.searchParams.set("filter", `doi:${p.doi.toLowerCase()}`);
-  } else {
-    url.searchParams.set("search", p.title || p.raw);
-    if (p.year) url.searchParams.set("filter", `publication_year:${p.year}`);
-  }
+      // 复制到剪贴板
+      async function copyToClipboard(text) {
+        try {
+          await navigator.clipboard.writeText(text);
+          return true;
+        } catch (e) {
+          // 回退方案
+          const textarea = document.createElement("textarea");
+          textarea.value = text;
+          textarea.style.position = "fixed";
+          textarea.style.opacity = "0";
+          document.body.appendChild(textarea);
+          textarea.select();
+          try {
+            document.execCommand("copy");
+            document.body.removeChild(textarea);
+            return true;
+          } catch (e2) {
+            document.body.removeChild(textarea);
+            return false;
+          }
+        }
+      }
 
-  const r = await fetch(url.toString());
-  if (!r.ok) throw new Error("OpenAlex 请求失败: " + r.status);
-  return await r.json();
-}
+      // 下载文件
+      function downloadFile(content, filename) {
+        const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
 
-async function queryCrossref(p, mailto) {
-  // ✅ DOI：精确取回
-  if (p.doi) {
-    const doiEnc = encodeURIComponent(p.doi.toLowerCase());
-    const url = new URL(`https://api.crossref.org/works/${doiEnc}`);
-    if (mailto) url.searchParams.set("mailto", mailto);
+      /**
+       * 增强版参考文献解析器 v2.0
+       * 支持格式：
+       * - 中文：GB/T 7714（知网、万方、维普标准格式）
+       * - 英文：APA、MLA、Chicago、Harvard、IEEE、Vancouver、Nature、Science
+       * - 通用：DOI、BibTeX、arXiv 等
+       *
+       * 核心原则：
+       * 1. 优先匹配具有明确特征的格式（如 BibTeX 的 @、GB/T 7714 的 [J] 等）
+       * 2. 避免过度匹配，宁可落入通用解析也不要错误分类
+       * 3. 每个解析器专注于自己格式的特征，不做过度推断
+       */
+      function parseCitation(raw) {
+        const s = raw.trim();
 
-    const r = await fetch(url.toString(), { headers: { "Accept": "application/json" } });
-    if (!r.ok) throw new Error("Crossref DOI 精确查询失败: " + r.status);
+        // ========== 通用字段提取 ==========
+        // 提取年份（更严格的匹配，避免匹配到其他数字）
+        const yearPatterns = [
+          /\((\d{4})\)/, // (2023)
+          /\[(\d{4})\]/, // [2023]
+          /[,，.。;；]\s*(\d{4})\s*[,，.。;；]/, // , 2023,
+          /[,，]\s*(\d{4})\s*$/, // 结尾的 , 2023
+          /^(\d{4})\s*[,，.。]/, // 开头的 2023,
+          /[\s,.](\d{4})[\s,.]/, // 空格或标点包围的年份
+        ];
+        let year = null;
+        for (const pattern of yearPatterns) {
+          const match = s.match(pattern);
+          if (match) {
+            const y = parseInt(match[1], 10);
+            if (y >= 1900 && y <= 2100) {
+              year = y;
+              break;
+            }
+          }
+        }
+        // 如果上面没匹配到，用宽松模式
+        if (!year) {
+          const looseMatch = s.match(/(19|20)\d{2}/);
+          if (looseMatch) {
+            year = parseInt(looseMatch[0], 10);
+          }
+        }
 
-    const one = await r.json();
-    // 统一成你现有的返回结构：cr.message.items
-    return { message: { items: [one.message] } };
-  }
+        // 提取 DOI（严格匹配）
+        const doiMatch = s.match(/\b(10\.\d{4,9}\/[^\s\]\)>"',]+)/i);
+        const doi = doiMatch ? doiMatch[1].replace(/[.,;:\]>]+$/, "") : null;
 
-  // 原来的：模糊检索
-  let url = new URL("https://api.crossref.org/works");
-  url.searchParams.set("rows", "50");
-  if (mailto) url.searchParams.set("mailto", mailto);
+        // 提取 URL
+        const urlMatch = s.match(/https?:\/\/[^\s\]\)>]+/i);
+        const url = urlMatch ? urlMatch[0].replace(/[.,;:\]>]+$/, "") : null;
 
-  if (p.title) url.searchParams.set("query.bibliographic", p.title);
-  if (p.journal) url.searchParams.set("query.container-title", p.journal);
-  if (p.authors && p.authors[0]) url.searchParams.set("query.author", p.authors[0]);
-  if (p.year) url.searchParams.set("filter", `from-pub-date:${p.year}-01-01,until-pub-date:${p.year}-12-31`);
+        // ========== 格式检测与解析（按特征明确程度排序） ==========
 
-  const r = await fetch(url.toString(), { headers: { "Accept": "application/json" } });
-  if (!r.ok) throw new Error("Crossref 请求失败: " + r.status);
-  return await r.json();
-}
+        // 1. BibTeX 格式（最明确：以 @ 开头）
+        if (s.match(/^\s*@\w+\s*\{/)) {
+          return parseBibTeX(s);
+        }
 
-/** ---------- 打分 ---------- */
-function scoreOpenAlexWork(p, w) {
-  const t = jaccard(p.title, w.title || "");
-  const y = (p.year && w.publication_year === p.year) ? 1 : 0;
-  const j = jaccard(p.journal, (w.primary_location?.source?.display_name) || "");
-  const v = (p.volume && w.biblio?.volume && String(w.biblio.volume) === String(p.volume)) ? 1 : 0;
-  const i = (p.issue && w.biblio?.issue && String(w.biblio.issue) === String(p.issue)) ? 1 : 0;
-  const fp = (p.firstPage && w.biblio?.first_page && String(w.biblio.first_page) === String(p.firstPage)) ? 1 : 0;
-  const lp = (p.lastPage && w.biblio?.last_page && String(w.biblio.last_page) === String(p.lastPage)) ? 1 : 0;
+        // 2. 中文 GB/T 7714 格式（明确特征：[J], [M], [C] 等类型标记）
+        const cnTypeMatch = s.match(
+          /\[(J|M|C|D|P|N|R|S|A|Z|DB|EB|OL|CP|DS)(?:\/[A-Z]+)?\]/i
+        );
+        if (cnTypeMatch) {
+          return parseChineseGBT7714(s, cnTypeMatch, year, doi);
+        }
 
-  const workAuthors = (w.authorships || []).map(a => a.author?.display_name || "").join(" ");
-  const a = p.authors?.length ? jaccard(p.authors.join(" "), workAuthors) : 0;
+        // 3. IEEE 格式（明确特征：以 [数字] 开头 + 引号标题 或 "vol." + "pp."）
+        const ieeeNumbered = s.match(
+          /^\s*\[?\d+\]?\s*[A-Z][^"]*,\s*[""][^""]+[""]/
+        );
+        const ieeeKeywords =
+          s.match(/\bvol\.\s*\d+/i) && s.match(/\bpp\.\s*\d+/i);
+        if (ieeeNumbered || ieeeKeywords) {
+          return parseIEEE(s, year, doi);
+        }
 
-  return 0.45 * t + 0.15 * a + 0.12 * j + 0.10 * y + 0.06 * v + 0.04 * i + 0.04 * fp + 0.04 * lp;
-}
+        // 4. Vancouver/NLM 格式（明确特征：年份后跟分号和卷期页码 如 2023;15(3):100-110）
+        const vancouverPattern = s.match(
+          /(19|20)\d{2}\s*;\s*\d+\s*\(\d+\)\s*:\s*\d+/
+        );
+        if (vancouverPattern) {
+          return parseVancouver(s, year, doi);
+        }
 
-function scoreCrossrefItem(p, it) {
-  const title = (it.title && it.title[0]) ? it.title[0] : "";
-  const container = (it["container-title"] && it["container-title"][0]) ? it["container-title"][0] : "";
-  const issuedYear = it.issued?.["date-parts"]?.[0]?.[0];
+        // 5. arXiv/预印本格式（明确特征：arXiv: 或 abs/ ID）
+        const arxivPattern =
+          s.match(/arXiv\s*[:\s]\s*(\d{4}\.\d{4,5})/i) ||
+          s.match(/abs\/(\d{4}\.\d{4,5})/i);
+        if (arxivPattern) {
+          return parseArxivTechReport(s, year, doi);
+        }
 
-  const t = jaccard(p.title, title);
-  const j = jaccard(p.journal, container);
-  const y = (p.year && issuedYear === p.year) ? 1 : 0;
+        // 6. MDPI/开放获取格式（明确特征：星号包裹的期刊名 *Journal*）
+        const mdpiPattern = s.match(/\*([^*]+)\*\s*[.,]?\s*\d{4}/);
+        if (mdpiPattern) {
+          return parseMDPI(s, year, doi);
+        }
 
-  const crAuthors = (it.author || []).map(a => a.family || "").join(" ");
-  const a = p.authors?.length ? jaccard(p.authors.join(" "), crAuthors) : 0;
+        // 7. Nature/Science 格式（明确特征：期刊名 + 卷号 + 页码 + (年份)）
+        // 如: Nature 600, 100-110 (2023)
+        const naturePattern = s.match(
+          /\.\s*([A-Z][a-zA-Z.\s]{2,30}?)\s+(\d{1,4})\s*,\s*(\d+)\s*[-–—]\s*(\d+)\s*\((\d{4})\)\s*\.?\s*$/
+        );
+        if (naturePattern) {
+          return parseNature(s, year, doi);
+        }
 
-  const v = (p.volume && it.volume && String(it.volume) === String(p.volume)) ? 1 : 0;
-  const i = (p.issue && it.issue && String(it.issue) === String(p.issue)) ? 1 : 0;
-  const page = it.page || "";
-  const fp = (p.firstPage && page.includes(p.firstPage)) ? 1 : 0;
-  const lp = (p.lastPage && page.includes(p.lastPage)) ? 1 : 0;
+        // 8. APA 格式（特征：作者 (年份). 标题. 期刊, 卷(期), 页码.）
+        // 关键判断：作者部分后紧跟 (年份).
+        const apaPattern = s.match(
+          /^([^(]+?)\s*\((19|20)\d{2}[a-z]?\)\s*\.\s*(.+)/
+        );
+        if (apaPattern && !s.match(/^\s*\d+\./)) {
+          // 排除编号列表
+          // 进一步验证：APA 格式的作者部分通常包含逗号和 & 或 "and"
+          const authorPart = apaPattern[1];
+          const hasAPAAuthorFormat =
+            authorPart.match(/[A-Z][a-z]+,\s*[A-Z]\./i) ||
+            authorPart.match(/&/) ||
+            authorPart.match(/,\s*and\s/i);
+          if (hasAPAAuthorFormat) {
+            return parseAPA(s, year, doi);
+          }
+        }
 
-  return 0.45 * t + 0.15 * a + 0.12 * j + 0.10 * y + 0.06 * v + 0.04 * i + 0.04 * fp + 0.04 * lp;
-}
+        // 9. Harvard 格式（特征：作者 (年份) '标题' 或 作者 (年份) 标题, 期刊）
+        const harvardPattern = s.match(
+          /^([^(]+)\s*\((19|20)\d{2}\)\s+['''""]?([^''"",]+)/
+        );
+        if (harvardPattern && s.match(/pp\.\s*\d+/i)) {
+          return parseHarvard(s, year, doi);
+        }
 
-function getVerdict(score) {
-  if (score >= 0.78) return { level: "high", text: "高可信", desc: "强匹配" };
-  if (score >= 0.55) return { level: "medium", text: "中可信", desc: "需核对" };
-  return { level: "low", text: "低可信", desc: "可能伪造" };
-}
+        // 10. Chicago 格式（特征：作者. "标题." 期刊 卷, no. 期 (年份): 页码.）
+        const chicagoPattern = s.match(
+          /^([^.]+)\.\s*[""]([^""]+)[""]\s*\.?\s*(.+)/
+        );
+        if (chicagoPattern) {
+          const afterTitle = chicagoPattern[3];
+          // Chicago 格式的关键特征：no. 期号 或 (年份): 页码
+          if (
+            afterTitle.match(/\bno\.\s*\d+/i) ||
+            afterTitle.match(/\(\d{4}\)\s*:/)
+          ) {
+            return parseChicago(s, year, doi);
+          }
+        }
 
-/** ---------- 单条校验 ---------- */
-async function verifySingle(raw, mailto) {
-  const p = parseCitation(raw);
+        // 11. MLA 格式（特征：作者. "标题." 期刊, vol. X, no. Y, 年份, pp. Z-W.）
+        const mlaPattern = s.match(
+          /^([^.]+)\.\s*[""]([^""]+)[""]\s*\.?\s*(.+)/
+        );
+        if (mlaPattern) {
+          const afterTitle = mlaPattern[3];
+          // MLA 格式的关键特征：vol. 和 pp. 同时出现，且不是 IEEE 格式（无 [ ] 编号）
+          if (
+            afterTitle.match(/\bvol\.\s*\d+/i) &&
+            afterTitle.match(/\bpp\.\s*\d+/i) &&
+            !s.match(/^\s*\[?\d+\]/)
+          ) {
+            return parseMLA(s, year, doi);
+          }
+        }
 
-  const [oa, cr] = await Promise.all([
-    queryOpenAlex(p, mailto).catch(e => ({ __error: e.message })),
-    queryCrossref(p, mailto).catch(e => ({ __error: e.message }))
-  ]);
+        // 12. 通用格式（兜底）
+        return parseGeneric(s, year, doi);
+      }
 
-  const oaItems = oa?.results || [];
-  const crItems = cr?.message?.items || [];
+      // ========== BibTeX 格式解析 ==========
+      // ========== BibTeX 格式解析（优化版） ==========
+      // 标准格式：@type{citekey, field = {value}, ...}
+      function parseBibTeX(s) {
+        const result = {
+          raw: s,
+          year: null,
+          doi: null,
+          title: null,
+          journal: null,
+          volume: null,
+          issue: null,
+          firstPage: null,
+          lastPage: null,
+          authors: [],
+        };
 
-  const oaBest = pickBest(oaItems, w => scoreOpenAlexWork(p, w));
-  const crBest = pickBest(crItems, it => scoreCrossrefItem(p, it));
+        // 提取类型
+        const typeMatch = s.match(/@(\w+)\s*\{/);
+        if (typeMatch) result.type = typeMatch[1].toLowerCase();
 
-  const oaScore = oaBest?.best ? oaBest.bestScore : 0;
-  const crScore = crBest?.best ? crBest.bestScore : 0;
-  const combined = Math.max(oaScore, crScore) * 0.6 + Math.min(oaScore, crScore) * 0.4;
+        // 提取各字段 - 使用更精确的正则表达式
+        // BibTeX 字段格式：field = {value} 或 field = "value" 或 field = value
 
-  return {
-    raw,
-    parsed: p,
-    oaBest,
-    crBest,
-    oaScore,
-    crScore,
-    combined,
-    verdict: getVerdict(combined)
-  };
-}
+        // 提取 author
+        const authorMatch = s.match(/\bauthor\s*=\s*[{"]([^}"]+)[}"]/i);
+        if (authorMatch) {
+          const authorStr = authorMatch[1].replace(/[{}]/g, "").trim();
+          result.authors = authorStr
+            .split(/\s+and\s+/i)
+            .map((a) => {
+              const trimmed = a.trim();
+              // BibTeX 作者格式通常是 "Lastname, Firstname" 或 "Firstname Lastname"
+              if (trimmed.includes(",")) {
+                return trimmed.split(",")[0].trim();
+              } else {
+                const parts = trimmed.split(/\s+/);
+                return parts[parts.length - 1];
+              }
+            })
+            .filter((a) => a && a.length > 0);
+        }
 
-/** ---------- UI 渲染 ---------- */
-function renderResult(result, index) {
-  const { raw, parsed, oaBest, crBest, oaScore, crScore, combined, verdict } = result;
-  const oa = oaBest?.best;
-  const cr = crBest?.best;
+        // 提取 title
+        const titleMatch = s.match(/\btitle\s*=\s*[{"]([^}"]+)[}"]/i);
+        if (titleMatch) {
+          result.title = titleMatch[1].replace(/[{}]/g, "").trim();
+        }
 
-  return `
+        // 提取 journal 或 booktitle
+        const journalMatch = s.match(
+          /\b(?:journal|booktitle)\s*=\s*[{"]([^}"]+)[}"]/i
+        );
+        if (journalMatch) {
+          result.journal = journalMatch[1].replace(/[{}]/g, "").trim();
+        }
+
+        // 提取 year
+        const yearMatch = s.match(/\byear\s*=\s*[{"]?(\d{4})[}"']?/i);
+        if (yearMatch) {
+          result.year = parseInt(yearMatch[1], 10);
+        }
+
+        // 提取 volume
+        const volumeMatch = s.match(/\bvolume\s*=\s*[{"]?([^},"\s]+)[}"']?/i);
+        if (volumeMatch) {
+          result.volume = volumeMatch[1].replace(/[{}]/g, "").trim();
+        }
+
+        // 提取 number (期号)
+        const numberMatch = s.match(/\bnumber\s*=\s*[{"]?([^},"\s]+)[}"']?/i);
+        if (numberMatch) {
+          result.issue = numberMatch[1].replace(/[{}]/g, "").trim();
+        }
+
+        // 提取 pages
+        const pagesMatch = s.match(/\bpages\s*=\s*[{"]?([^}"',]+)[}"']?/i);
+        if (pagesMatch) {
+          const pageStr = pagesMatch[1].replace(/[{}]/g, "").trim();
+          const pp = pageStr.match(/(\d+)\s*[-–—]+\s*(\d+)/);
+          if (pp) {
+            result.firstPage = pp[1];
+            result.lastPage = pp[2];
+          } else {
+            const singlePage = pageStr.match(/(\d+)/);
+            if (singlePage) {
+              result.firstPage = singlePage[1];
+            }
+          }
+        }
+
+        // 提取 doi
+        const doiMatch = s.match(/\bdoi\s*=\s*[{"]?([^}"',\s]+)[}"']?/i);
+        if (doiMatch) {
+          result.doi = doiMatch[1].replace(/[{}]/g, "").trim();
+        }
+
+        // 提取 eprint (arXiv ID)
+        const eprintMatch = s.match(/\beprint\s*=\s*[{"]?([^}"',\s]+)[}"']?/i);
+        if (eprintMatch) {
+          result.arxivId = eprintMatch[1].replace(/[{}]/g, "").trim();
+        }
+
+        return result;
+      }
+
+      function parseChineseGBT7714(s, typeMatch, year, doi) {
+        const result = {
+          raw: s,
+          year,
+          doi,
+          title: null,
+          journal: null,
+          volume: null,
+          issue: null,
+          firstPage: null,
+          lastPage: null,
+          authors: [],
+        };
+
+        const typeCode = typeMatch[1].toUpperCase();
+        const typeIdx = s.indexOf(typeMatch[0]);
+        const beforeType = s.slice(0, typeIdx).trim();
+        const afterType = s.slice(typeIdx + typeMatch[0].length).trim();
+
+        let authorPart = "";
+        let titlePart = "";
+
+        const chineseAuthorTitleMatch = beforeType.match(
+          /^((?:[\u4e00-\u9fa5]{2,4}(?:[,，、]\s*)?)+(?:等|et\s*al\.?)?)\s*[.．。]\s*(.+)$/
+        );
+
+        const englishAuthorTitleMatch = beforeType.match(
+          /^((?:[A-Z][a-zA-Z'-]+(?:\s+[A-Z]\.?)*(?:[,，]\s*)?)+(?:et\s*al\.?)?)\s*[.．。]\s*(.+)$/
+        );
+
+        // 混合格式（中英文作者混合）
+        const mixedAuthorTitleMatch = beforeType.match(
+          /^(.+?)\s*[.．。]\s*([^.．。]+)$/
+        );
+
+        if (chineseAuthorTitleMatch) {
+          authorPart = chineseAuthorTitleMatch[1].trim();
+          titlePart = chineseAuthorTitleMatch[2].trim();
+        } else if (englishAuthorTitleMatch) {
+          authorPart = englishAuthorTitleMatch[1].trim();
+          titlePart = englishAuthorTitleMatch[2].trim();
+        } else if (mixedAuthorTitleMatch) {
+          // 使用混合匹配作为后备
+          authorPart = mixedAuthorTitleMatch[1].trim();
+          titlePart = mixedAuthorTitleMatch[2].trim();
+        } else {
+          // 最后的回退：整个 beforeType 作为标题
+          titlePart = beforeType;
+        }
+
+        result.title = titlePart;
+
+        // 解析作者列表
+        if (authorPart) {
+          const authorDelimiters = /[,，;；、]/;
+          const rawAuthors = authorPart
+            .split(authorDelimiters)
+            .map((a) => a.trim())
+            .filter(Boolean);
+
+          result.authors = rawAuthors
+            .map((a) => {
+              // 移除 "等" 或 "et al."
+              a = a.replace(/等$|et\s*al\.?$/i, "").trim();
+              // 对于英文作者，提取姓氏
+              if (/^[A-Z]/.test(a)) {
+                // 如果是 "Lastname, Firstname" 格式
+                if (a.includes(",")) {
+                  return a.split(",")[0].trim();
+                }
+                // 如果是 "Firstname Lastname" 格式，取最后一个词
+                const parts = a.split(/\s+/);
+                return parts[parts.length - 1];
+              }
+              // 中文作者直接返回
+              return a;
+            })
+            .filter((a) => a && a.length > 0);
+        }
+
+        // ===== 解析类型标记后的内容 =====
+        // 移除开头的点号和斜杠
+        let restContent = afterType.replace(/^[.．。/／]\s*/, "").trim();
+
+        if (typeCode === "J" || typeCode === "N") {
+          // 期刊/报纸格式：期刊名, 年, 卷(期): 起始页-终止页.
+          // 或：期刊名, 年, 卷(期): 文章编号.
+
+          // 提取期刊名（第一个逗号前的内容）
+          const journalMatch = restContent.match(/^([^,，]+)/);
+          if (journalMatch) {
+            result.journal = journalMatch[1].trim();
+          }
+
+          // 提取卷期页码
+          // 格式1：年, 卷(期): 页码
+          const fullMatch = restContent.match(
+            /(\d{4})\s*[,，]\s*(\d+)\s*\((\d+)\)\s*[：:]\s*(\d+)(?:\s*[-–—]\s*(\d+))?/
+          );
+          if (fullMatch) {
+            result.year = parseInt(fullMatch[1], 10);
+            result.volume = fullMatch[2];
+            result.issue = fullMatch[3];
+            result.firstPage = fullMatch[4];
+            if (fullMatch[5]) result.lastPage = fullMatch[5];
+          } else {
+            // 格式2：卷(期): 页码（无年份）
+            const viMatch = restContent.match(
+              /(\d+)\s*\((\d+)\)\s*[：:]\s*(\d+)(?:\s*[-–—]\s*(\d+))?/
+            );
+            if (viMatch) {
+              result.volume = viMatch[1];
+              result.issue = viMatch[2];
+              result.firstPage = viMatch[3];
+              if (viMatch[4]) result.lastPage = viMatch[4];
+            }
+          }
+        } else if (typeCode === "M") {
+          // 专著格式：出版地: 出版社, 年.
+          const publisherMatch = restContent.match(
+            /([^:：]+)[：:]\s*([^,，]+)/
+          );
+          if (publisherMatch) {
+            result.journal = publisherMatch[2].trim(); // 用 journal 字段存储出版社
+          }
+        } else if (typeCode === "C") {
+          // 论文集格式：//论文集名. 出版地: 出版社, 年: 页码.
+          const procMatch = restContent.match(/^\/?\/?([^.．。]+)/);
+          if (procMatch) {
+            result.journal = procMatch[1].trim();
+          }
+        } else if (typeCode === "D") {
+          // 学位论文格式：保存地: 保存单位, 年.
+          const schoolMatch = restContent.match(/([^:：]+)[：:]\s*([^,，]+)/);
+          if (schoolMatch) {
+            result.journal = schoolMatch[2].trim();
+          }
+        }
+
+        // 如果上面没有解析出页码，尝试通用页码匹配
+        if (!result.firstPage) {
+          const pageMatch = s.match(/[：:]\s*(\d+)\s*[-–—]\s*(\d+)/);
+          if (pageMatch) {
+            result.firstPage = pageMatch[1];
+            result.lastPage = pageMatch[2];
+          }
+        }
+
+        return result;
+      }
+
+      // ========== IEEE 格式解析（优化版） ==========
+      // 标准格式：[1] A. Author, B. Author, and C. Author, "Article title," Journal Name, vol. X, no. Y, pp. Z-W, Month Year.
+      // 或无编号：A. Author, "Article title," Journal Name, vol. X, pp. Z-W, Year.
+      function parseIEEE(s, year, doi) {
+        const result = {
+          raw: s,
+          year,
+          doi,
+          title: null,
+          journal: null,
+          volume: null,
+          issue: null,
+          firstPage: null,
+          lastPage: null,
+          authors: [],
+        };
+
+        // 移除开头的编号 [1] 或 1. 或 1)
+        let str = s.replace(/^\s*\[?\d+[\].)]\s*/, "").trim();
+
+        // ===== 提取标题（在引号内） =====
+        // IEEE 格式的标题用英文引号包裹
+        const titleMatch = str.match(/[""]([^""]+)[""]/);
+        if (titleMatch) {
+          result.title = titleMatch[1].trim().replace(/,\s*$/, "");
+        }
+
+        // ===== 提取作者（在标题之前） =====
+        if (titleMatch) {
+          const authorPart = str.slice(0, str.indexOf(titleMatch[0])).trim();
+          // 移除末尾的逗号
+          const cleanAuthorPart = authorPart.replace(/,\s*$/, "").trim();
+
+          if (cleanAuthorPart) {
+            // IEEE 作者格式：A. B. Author, C. D. Author, and E. F. Author
+            // 先按 ", and " 或 " and " 分割
+            const authorGroups = cleanAuthorPart.split(/,?\s+and\s+/i);
+
+            for (const group of authorGroups) {
+              // 再按逗号分割（注意：名字缩写后也有点和空格，不要在那里分割）
+              // 策略：按 ", " 后跟大写字母的模式分割
+              const authors = group.split(/,\s+(?=[A-Z])/);
+
+              for (const author of authors) {
+                const trimmed = author.trim();
+                if (!trimmed) continue;
+
+                // 提取姓氏（最后一个大写开头的词）
+                // IEEE 格式通常是 "A. B. Lastname" 或 "First M. Lastname"
+                const parts = trimmed.split(/\s+/);
+                // 找到最后一个不是缩写（不以点结尾）的词作为姓氏
+                for (let i = parts.length - 1; i >= 0; i--) {
+                  const part = parts[i];
+                  if (part && !part.match(/^[A-Z]\.$/) && part.length > 1) {
+                    result.authors.push(part.replace(/,$/, ""));
+                    break;
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // ===== 提取期刊名（在标题后、vol. 前） =====
+        if (titleMatch) {
+          const afterTitle = str.slice(
+            str.indexOf(titleMatch[0]) + titleMatch[0].length
+          );
+          // 期刊名在第一个逗号后，vol. 之前
+          // 格式：," Journal Name, vol. X
+          const journalMatch = afterTitle.match(
+            /,?\s*[""]?\s*([^,]+?)\s*,\s*vol\./i
+          );
+          if (journalMatch) {
+            result.journal = journalMatch[1]
+              .trim()
+              .replace(/^,\s*/, "")
+              .replace(/^\s*in\s+/i, "");
+          } else {
+            // 如果没有 vol.，尝试其他模式
+            const simpleJournalMatch = afterTitle.match(
+              /,?\s*([A-Z][^,]+?)\s*,\s*(?:pp\.|no\.|\d{4})/i
+            );
+            if (simpleJournalMatch) {
+              result.journal = simpleJournalMatch[1].trim();
+            }
+          }
+        }
+
+        // ===== 提取卷号 =====
+        const volMatch = s.match(/\bvol\.\s*(\d+)/i);
+        if (volMatch) result.volume = volMatch[1];
+
+        // ===== 提取期号 =====
+        const noMatch = s.match(/\bno\.\s*(\d+)/i);
+        if (noMatch) result.issue = noMatch[1];
+
+        // ===== 提取页码 =====
+        const ppMatch = s.match(/\bpp\.\s*(\d+)\s*[-–—]\s*(\d+)/i);
+        if (ppMatch) {
+          result.firstPage = ppMatch[1];
+          result.lastPage = ppMatch[2];
+        } else {
+          // 单页情况
+          const singlePpMatch = s.match(
+            /\bpp?\.\s*(\d+)(?:\s*[-–—]\s*(\d+))?/i
+          );
+          if (singlePpMatch) {
+            result.firstPage = singlePpMatch[1];
+            if (singlePpMatch[2]) result.lastPage = singlePpMatch[2];
+          }
+        }
+
+        return result;
+      }
+
+      // ========== Vancouver/NLM 格式解析（优化版） ==========
+      // 标准格式：Author AA, Author BB. Article title. Journal Abbrev. Year;Vol(Issue):Pages.
+      // 示例：Smith JA, Jones BC. Article title here. N Engl J Med. 2023;389(15):1400-1410.
+      function parseVancouver(s, year, doi) {
+        const result = {
+          raw: s,
+          year,
+          doi,
+          title: null,
+          journal: null,
+          volume: null,
+          issue: null,
+          firstPage: null,
+          lastPage: null,
+          authors: [],
+        };
+
+        // Vancouver 格式用点号分隔主要部分
+        const parts = s.split(/\.\s+/);
+
+        if (parts.length >= 3) {
+          // 第一部分是作者
+          const authorPart = parts[0];
+          // Vancouver 作者格式：Lastname AB, Lastname CD
+          const authorMatches = authorPart.match(
+            /([A-Z][a-z]+)\s+[A-Z]{1,3}(?:,|$)/g
+          );
+          if (authorMatches) {
+            result.authors = authorMatches.map(
+              (a) => a.match(/([A-Z][a-z]+)/)[1]
+            );
+          } else {
+            // 回退：按逗号分割
+            result.authors = authorPart
+              .split(/,\s*/)
+              .map((a) => a.trim().split(/\s+/)[0])
+              .filter((a) => a && a.length > 1);
+          }
+
+          // 第二部分是标题
+          result.title = parts[1].trim();
+
+          // 第三部分开始是期刊和元数据
+          const journalPart = parts.slice(2).join(". ");
+
+          // 期刊名是年份分号前的内容
+          const journalMatch = journalPart.match(
+            /^([^.;]+?)(?:\.\s*)?\d{4}\s*;/
+          );
+          if (journalMatch) {
+            result.journal = journalMatch[1].trim();
+          } else {
+            // 简单匹配：第一个部分
+            const simpleMatch = journalPart.match(/^([A-Za-z][A-Za-z\s]+)/);
+            if (simpleMatch) {
+              result.journal = simpleMatch[1].trim();
+            }
+          }
+        }
+
+        // 解析卷期页码：Year;Vol(Issue):Pages
+        const metaPatterns = [
+          // 完整格式：2023;389(15):1400-1410
+          /(\d{4})\s*;\s*(\d+)\s*\((\d+)\)\s*:\s*(\d+)\s*[-–—]\s*(\d+)/,
+          // 无期号：2023;389:1400-1410
+          /(\d{4})\s*;\s*(\d+)\s*:\s*(\d+)\s*[-–—]\s*(\d+)/,
+          // 只有卷和起始页：2023;389:1400
+          /(\d{4})\s*;\s*(\d+)\s*:\s*(\d+)/,
+        ];
+
+        for (const pattern of metaPatterns) {
+          const match = s.match(pattern);
+          if (match) {
+            result.year = parseInt(match[1], 10);
+            result.volume = match[2];
+            if (pattern.source.includes("\\(")) {
+              // 有期号的模式
+              result.issue = match[3];
+              result.firstPage = match[4];
+              if (match[5]) result.lastPage = match[5];
+            } else {
+              // 无期号的模式
+              result.firstPage = match[3];
+              if (match[4]) result.lastPage = match[4];
+            }
+            break;
+          }
+        }
+
+        return result;
+      }
+
+      // ========== APA 格式解析（优化版） ==========
+      // APA 7th 格式：Author, A. A., Author, B. B., & Author, C. C. (Year). Title of article. Journal Name, Vol(Issue), Pages. https://doi.org/xxx
+      // 示例：Smith, J. A., & Jones, B. C. (2023). Article title here. Journal of Science, 45(3), 123-145.
+      function parseAPA(s, year, doi) {
+        const result = {
+          raw: s,
+          year,
+          doi,
+          title: null,
+          journal: null,
+          volume: null,
+          issue: null,
+          firstPage: null,
+          lastPage: null,
+          authors: [],
+        };
+
+        // APA 格式：作者 (年份). 标题. 期刊, 卷(期), 页码.
+        const mainMatch = s.match(
+          /^(.+?)\s*\((19|20)\d{2}[a-z]?\)\s*\.\s*(.+)/
+        );
+        if (!mainMatch) return result;
+
+        // ===== 解析作者 =====
+        const authorPart = mainMatch[1].trim();
+        // APA 作者格式：Lastname, F. M., Lastname, F. M., & Lastname, F. M.
+        // 按 ", & " 或 " & " 分割多个作者
+        const authorGroups = authorPart.split(/,?\s*&\s*/);
+
+        for (const group of authorGroups) {
+          // 每个作者可能是 "Lastname, F. M." 格式
+          // 需要提取姓氏（第一个逗号前的内容）
+          const trimmed = group.trim();
+          if (!trimmed) continue;
+
+          // 检查是否是 "Lastname, F. M." 格式
+          const lastFirstMatch = trimmed.match(/^([A-Z][a-zA-Z'-]+)\s*,/);
+          if (lastFirstMatch) {
+            result.authors.push(lastFirstMatch[1]);
+          } else {
+            // 可能只是一个姓氏（如 "et al." 前的最后一个作者）
+            const simpleMatch = trimmed.match(/^([A-Z][a-zA-Z'-]+)/);
+            if (simpleMatch && simpleMatch[1].length > 1) {
+              result.authors.push(simpleMatch[1]);
+            }
+          }
+        }
+
+        // ===== 解析标题和期刊 =====
+        const afterYear = mainMatch[3];
+        // 用点号分割，第一部分是标题，第二部分开始是期刊信息
+        const dotParts = afterYear.split(/\.\s+/);
+
+        if (dotParts.length >= 1) {
+          result.title = dotParts[0].trim();
+        }
+
+        if (dotParts.length >= 2) {
+          // 期刊部分：Journal Name, Vol(Issue), Pages.
+          const journalPart = dotParts.slice(1).join(". ");
+
+          // 提取期刊名（第一个逗号前的内容，但要排除末尾的卷期信息）
+          const journalMatch = journalPart.match(/^([^,]+?)(?:\s*,\s*\d|$)/);
+          if (journalMatch) {
+            result.journal = journalMatch[1].trim();
+          }
+
+          // 提取卷期：Vol(Issue)
+          const viMatch = journalPart.match(/,\s*(\d+)\s*\((\d+)\)/);
+          if (viMatch) {
+            result.volume = viMatch[1];
+            result.issue = viMatch[2];
+          } else {
+            // 只有卷号
+            const volOnly = journalPart.match(/,\s*(\d+)\s*,/);
+            if (volOnly) result.volume = volOnly[1];
+          }
+
+          // 提取页码
+          const pageMatch = journalPart.match(/,\s*(\d+)\s*[-–—]\s*(\d+)/);
+          if (pageMatch) {
+            result.firstPage = pageMatch[1];
+            result.lastPage = pageMatch[2];
+          }
+        }
+
+        return result;
+      }
+
+      // ========== Chicago 格式解析（优化版） ==========
+      // Chicago 17th (Notes-Bibliography) 格式：
+      // Author. "Title." Journal Name Vol, no. Issue (Year): Pages.
+      // 示例：Smith, John. "Article Title Here." Journal of Science 45, no. 3 (2023): 100-150.
+      function parseChicago(s, year, doi) {
+        const result = {
+          raw: s,
+          year,
+          doi,
+          title: null,
+          journal: null,
+          volume: null,
+          issue: null,
+          firstPage: null,
+          lastPage: null,
+          authors: [],
+        };
+
+        // ===== 解析作者 =====
+        // Chicago 格式作者在第一个点号前
+        const firstDotMatch = s.match(/^([^.]+)\./);
+        if (firstDotMatch) {
+          const authorPart = firstDotMatch[1];
+          // Chicago 作者格式：Lastname, Firstname, and Firstname Lastname
+          // 或简单的：Lastname, Firstname
+          const authorGroups = authorPart.split(/,?\s+and\s+/i);
+
+          for (const group of authorGroups) {
+            const trimmed = group.trim();
+            if (!trimmed) continue;
+
+            // 提取姓氏
+            const commaMatch = trimmed.match(/^([A-Z][a-zA-Z'-]+)\s*,/);
+            if (commaMatch) {
+              result.authors.push(commaMatch[1]);
+            } else {
+              // 可能是 "Firstname Lastname" 格式
+              const parts = trimmed.split(/\s+/);
+              if (parts.length >= 2) {
+                result.authors.push(parts[parts.length - 1]);
+              } else if (parts.length === 1 && parts[0].length > 1) {
+                result.authors.push(parts[0]);
+              }
+            }
+          }
+        }
+
+        // ===== 解析标题（在引号内） =====
+        const titleMatch = s.match(/[""]([^""]+)[""]/);
+        if (titleMatch) {
+          result.title = titleMatch[1].trim().replace(/\.$/, "");
+        }
+
+        // ===== 解析期刊和元数据 =====
+        if (titleMatch) {
+          const afterTitle = s.slice(
+            s.indexOf(titleMatch[0]) + titleMatch[0].length
+          );
+
+          // Chicago 期刊格式：Journal Name Vol, no. Issue (Year): Pages.
+          const journalMatch = afterTitle.match(
+            /^\s*\.?\s*([A-Z][^0-9,]+?)\s+(\d+)\s*,\s*no\.\s*(\d+)\s*\((\d{4})\)\s*:\s*(\d+)(?:\s*[-–—]\s*(\d+))?/i
+          );
+
+          if (journalMatch) {
+            result.journal = journalMatch[1].trim();
+            result.volume = journalMatch[2];
+            result.issue = journalMatch[3];
+            result.year = parseInt(journalMatch[4], 10);
+            result.firstPage = journalMatch[5];
+            if (journalMatch[6]) result.lastPage = journalMatch[6];
+          } else {
+            // 简化匹配：只有期刊名和卷号
+            const simpleMatch = afterTitle.match(
+              /^\s*\.?\s*([A-Z][^0-9,]+?)\s+(\d+)/
+            );
+            if (simpleMatch) {
+              result.journal = simpleMatch[1].trim();
+              result.volume = simpleMatch[2];
+            }
+
+            // 单独匹配期号
+            const noMatch = afterTitle.match(/no\.\s*(\d+)/i);
+            if (noMatch) result.issue = noMatch[1];
+
+            // 单独匹配页码
+            const pageMatch = afterTitle.match(/:\s*(\d+)\s*[-–—]\s*(\d+)/);
+            if (pageMatch) {
+              result.firstPage = pageMatch[1];
+              result.lastPage = pageMatch[2];
+            }
+          }
+        }
+
+        return result;
+      }
+
+      // ========== Harvard 格式解析（优化版） ==========
+      // Harvard 格式：Author (Year) 'Title', Journal, Vol(Issue), pp. Pages.
+      // 或：Author (Year) Title, Journal, Vol(Issue), pp. Pages.
+      // 示例：Smith, J. (2023) 'Article title here', Journal of Science, 45(3), pp. 100-150.
+      function parseHarvard(s, year, doi) {
+        const result = {
+          raw: s,
+          year,
+          doi,
+          title: null,
+          journal: null,
+          volume: null,
+          issue: null,
+          firstPage: null,
+          lastPage: null,
+          authors: [],
+        };
+
+        // Harvard 格式：作者 (年份) 标题, 期刊, 卷(期), pp. 页码
+        const mainMatch = s.match(/^(.+?)\s*\((19|20)\d{2}\)\s*(.+)/);
+        if (!mainMatch) return result;
+
+        // ===== 解析作者 =====
+        const authorPart = mainMatch[1].trim();
+        // Harvard 作者格式：Smith, J., Jones, A. and Lee, C.
+        const authorGroups = authorPart.split(/,?\s+and\s+/i);
+
+        for (const group of authorGroups) {
+          const trimmed = group.trim();
+          if (!trimmed) continue;
+
+          // 可能包含多个作者用逗号分隔
+          // 但要注意 "Smith, J." 中的逗号不是分隔符
+          const commaMatch = trimmed.match(/^([A-Z][a-zA-Z'-]+)\s*,/);
+          if (commaMatch) {
+            result.authors.push(commaMatch[1]);
+          }
+        }
+
+        // ===== 解析标题和期刊 =====
+        const afterYear = mainMatch[3];
+
+        // 提取标题（可能在引号内，也可能不在）
+        const quotedTitle = afterYear.match(
+          /^[''']([^''']+)[''']|^[""]([^""]+)[""]/
+        );
+        if (quotedTitle) {
+          result.title = (quotedTitle[1] || quotedTitle[2]).trim();
+
+          // 期刊在标题后
+          const afterTitle = afterYear.slice(
+            afterYear.indexOf(quotedTitle[0]) + quotedTitle[0].length
+          );
+          const journalMatch = afterTitle.match(/,\s*([^,]+?)\s*,\s*\d/);
+          if (journalMatch) {
+            result.journal = journalMatch[1].trim();
+          }
+        } else {
+          // 没有引号，用逗号分割
+          const parts = afterYear.split(/,\s*/);
+          if (parts.length >= 2) {
+            result.title = parts[0].trim();
+            result.journal = parts[1].trim();
+          }
+        }
+
+        // ===== 解析卷期 =====
+        const viMatch = afterYear.match(/(\d+)\s*\((\d+)\)/);
+        if (viMatch) {
+          result.volume = viMatch[1];
+          result.issue = viMatch[2];
+        }
+
+        // ===== 解析页码 =====
+        const ppMatch = afterYear.match(/pp\.?\s*(\d+)\s*[-–—]\s*(\d+)/i);
+        if (ppMatch) {
+          result.firstPage = ppMatch[1];
+          result.lastPage = ppMatch[2];
+        }
+
+        return result;
+      }
+
+
+      function parseMLA(s, year, doi) {
+        const result = {
+          raw: s,
+          year,
+          doi,
+          title: null,
+          journal: null,
+          volume: null,
+          issue: null,
+          firstPage: null,
+          lastPage: null,
+          authors: [],
+        };
+
+        // ===== 解析作者 =====
+        // MLA 作者在第一个点号前
+        const authorMatch = s.match(/^([^.]+)\./);
+        if (authorMatch) {
+          const authorPart = authorMatch[1];
+          const authorGroups = authorPart.split(/,?\s+and\s+/i);
+
+          for (const group of authorGroups) {
+            const trimmed = group.trim();
+            if (!trimmed) continue;
+
+            // MLA 第一作者格式：Lastname, Firstname
+            // 后续作者格式：Firstname Lastname
+            const commaMatch = trimmed.match(/^([A-Z][a-zA-Z'-]+)\s*,/);
+            if (commaMatch) {
+              result.authors.push(commaMatch[1]);
+            } else {
+              const parts = trimmed.split(/\s+/);
+              if (parts.length >= 2) {
+                result.authors.push(parts[parts.length - 1]);
+              }
+            }
+          }
+        }
+
+        // ===== 解析标题 =====
+        const titleMatch = s.match(/[""]([^""]+)[""]/);
+        if (titleMatch) {
+          result.title = titleMatch[1].trim().replace(/\.$/, "");
+        }
+
+        // ===== 解析期刊和元数据 =====
+        if (titleMatch) {
+          const afterTitle = s.slice(
+            s.indexOf(titleMatch[0]) + titleMatch[0].length
+          );
+
+          // 期刊名在引号后，vol. 之前
+          const journalMatch = afterTitle.match(
+            /^\s*\.?\s*([^,]+?)\s*,\s*vol\./i
+          );
+          if (journalMatch) {
+            result.journal = journalMatch[1].trim();
+          }
+        }
+
+        // ===== 解析卷期 =====
+        const volMatch = s.match(/\bvol\.\s*(\d+)/i);
+        if (volMatch) result.volume = volMatch[1];
+
+        const noMatch = s.match(/\bno\.\s*(\d+)/i);
+        if (noMatch) result.issue = noMatch[1];
+
+        // ===== 解析页码 =====
+        const ppMatch = s.match(/\bpp\.\s*(\d+)\s*[-–—]\s*(\d+)/i);
+        if (ppMatch) {
+          result.firstPage = ppMatch[1];
+          result.lastPage = ppMatch[2];
+        }
+
+        return result;
+      }
+
+      // ========== arXiv/预印本/技术报告格式解析（优化版） ==========
+      // 常见格式：
+      // - Author, A., Author, B., et al. Title. arXiv:2401.12345.
+      // - Author, A. (2024). Title. arXiv preprint arXiv:2401.12345.
+      // - Wang, A., Chen, H., et al. YOLOv10: ... arXiv:2405.14458.
+      function parseArxivTechReport(s, year, doi) {
+        const result = {
+          raw: s,
+          year,
+          doi,
+          title: null,
+          journal: null,
+          volume: null,
+          issue: null,
+          firstPage: null,
+          lastPage: null,
+          authors: [],
+          arxivId: null,
+        };
+
+        // 提取 arXiv ID
+        const arxivPatterns = [
+          /arXiv\s*[:\s]\s*(\d{4}\.\d{4,5})/i,
+          /arXiv\s*preprint\s*arXiv[:\s]*(\d{4}\.\d{4,5})/i,
+          /abs\/(\d{4}\.\d{4,5})/i,
+          /(\d{4}\.\d{4,5})/, // 纯数字格式作为最后手段
+        ];
+
+        for (const pattern of arxivPatterns) {
+          const match = s.match(pattern);
+          if (match) {
+            result.arxivId = match[1];
+            break;
+          }
+        }
+
+        if (result.arxivId) {
+          result.journal = "arXiv preprint";
+        }
+
+        // ===== 解析结构 =====
+        // 移除 arXiv 信息后的内容
+        let str = s
+          .replace(/arXiv\s*[:\s]*\d{4}\.\d{4,5}[v\d]*/gi, "")
+          .replace(/abs\/\d{4}\.\d{4,5}/gi, "")
+          .trim();
+
+        // 用点号分割
+        const parts = str.split(/\.\s+/).filter((p) => p.trim());
+
+        if (parts.length >= 2) {
+          // ===== 解析作者 =====
+          let authorPart = parts[0];
+
+          // 检查是否有 "et al."
+          const etAlIdx = authorPart.toLowerCase().indexOf("et al");
+          if (etAlIdx !== -1) {
+            authorPart = authorPart.slice(0, etAlIdx).trim();
+          }
+
+          // 解析作者列表
+          // 格式可能是：Author, A., Author, B. 或 Author A, Author B
+          const authorMatches = authorPart.match(
+            /([A-Z][a-zA-Z'-]+)\s*,?\s*[A-Z]\.?/g
+          );
+          if (authorMatches) {
+            result.authors = authorMatches
+              .map((m) => {
+                const match = m.match(/([A-Z][a-zA-Z'-]+)/);
+                return match ? match[1] : null;
+              })
+              .filter(Boolean);
+          }
+
+          // 如果上面没解析出来，尝试简单分割
+          if (result.authors.length === 0) {
+            result.authors = authorPart
+              .split(/[,;]/)
+              .map((a) => a.trim().split(/\s+/)[0])
+              .filter((a) => a && a.length > 1 && /^[A-Z]/.test(a));
+          }
+
+          // ===== 解析标题 =====
+          // 标题通常是第二部分
+          if (parts[1] && parts[1].length > 10) {
+            result.title = parts[1].trim();
+          } else if (parts.length > 2) {
+            // 可能第一部分只有作者，标题在后面
+            for (let i = 1; i < parts.length; i++) {
+              if (
+                parts[i].length > 20 &&
+                !parts[i].match(/university|institute|arxiv/i)
+              ) {
+                result.title = parts[i].trim();
+                break;
+              }
+            }
+          }
+
+          // ===== 检查是否有机构信息 =====
+          const institutionKeywords =
+            /University|Institute|Lab|Center|Centre|Research|College|School|Academy/i;
+          for (const part of parts) {
+            if (institutionKeywords.test(part) && !result.journal) {
+              // 如果没有 arXiv ID，用机构名作为 journal
+              if (!result.arxivId) {
+                result.journal = part.trim();
+              }
+              break;
+            }
+          }
+        }
+
+        // 提取页码（如果有）
+        const pageMatch = s.match(/\((\d+)\s*[-–—]\s*(\d+)\)/);
+        if (pageMatch) {
+          result.firstPage = pageMatch[1];
+          result.lastPage = pageMatch[2];
+        }
+
+        return result;
+      }
+
+      // ========== MDPI/开放获取期刊格式解析（优化版） ==========
+      // 格式：Author, A.; Author, B. Title. *Journal*. Year, Vol(Issue), ArticleNumber.
+      function parseMDPI(s, year, doi) {
+        const result = {
+          raw: s,
+          year,
+          doi,
+          title: null,
+          journal: null,
+          volume: null,
+          issue: null,
+          firstPage: null,
+          lastPage: null,
+          authors: [],
+          articleNumber: null,
+        };
+
+        // 提取期刊名（星号包裹）
+        const journalMatch = s.match(/\*([^*]+)\*/);
+        if (journalMatch) {
+          result.journal = journalMatch[1].trim();
+        }
+
+        // 提取年份、卷、期
+        const metaPatterns = [
+          /\*[^*]+\*\s*[.,]?\s*(\d{4})\s*[.,]?\s*(\d+)\s*\((\d+)\)/, // *Journal*. 2023, 11(6)
+          /(\d{4})\s*[.,]\s*(\d+)\s*\((\d+)\)/, // 2023, 11(6)
+        ];
+
+        for (const pattern of metaPatterns) {
+          const match = s.match(pattern);
+          if (match) {
+            result.year = parseInt(match[1], 10);
+            result.volume = match[2];
+            result.issue = match[3];
+            break;
+          }
+        }
+
+        // 提取文章编号
+        const articleNumPatterns = [
+          /\)\s*[.,]?\s*(\d+)\s*[.,]?\s*$/, // 末尾的文章号
+          /[.,]\s*(\d+)\s*[.,]?\s*https?:/, // DOI 前的文章号
+        ];
+
+        for (const pattern of articleNumPatterns) {
+          const match = s.match(pattern);
+          if (match) {
+            result.articleNumber = match[1];
+            result.firstPage = match[1];
+            break;
+          }
+        }
+
+        // ===== 解析作者和标题 =====
+        if (journalMatch) {
+          const beforeJournal = s.slice(0, s.indexOf(journalMatch[0])).trim();
+
+          // 用点号分割
+          const parts = beforeJournal.split(/\.\s+/);
+
+          if (parts.length >= 2) {
+            // 第一部分是作者
+            result.authors = parseAuthorString(parts[0]);
+            // 其余部分是标题
+            result.title = parts.slice(1).join(". ").replace(/\.$/, "").trim();
+          } else {
+            // 尝试其他分隔方式
+            // MDPI 格式作者通常用分号分隔
+            const semiMatch = beforeJournal.match(/^(.+?[A-Z]\.)\s+(.+)$/);
+            if (semiMatch) {
+              result.authors = parseAuthorString(semiMatch[1]);
+              result.title = semiMatch[2].replace(/\.$/, "").trim();
+            } else {
+              result.title = beforeJournal.replace(/\.$/, "").trim();
+            }
+          }
+        }
+
+        return result;
+      }
+
+      // 辅助函数：解析作者字符串
+      function parseAuthorString(authorStr) {
+        // 处理多种作者格式：
+        // "Asante,A., B. K., Imamura, H."
+        // "Smith, J., Jones, A."
+        // "Wang,A., Chen,H., Liu,L."
+
+        const authors = [];
+
+        // 首先按分号分割（如果有的话）
+        const semiParts = authorStr.split(/;\s*/);
+
+        for (const part of semiParts) {
+          // 尝试匹配 "姓,名缩写" 或 "姓, 名缩写" 格式
+          // 正则：匹配以大写字母开头的姓氏，后面可能跟着逗号和名字缩写
+          const namePattern =
+            /([A-Z][a-zA-Z'-]+)\s*,\s*([A-Z]\.?(?:\s*[A-Z]\.?)*)/g;
+          let match;
+          const foundNames = [];
+
+          while ((match = namePattern.exec(part)) !== null) {
+            foundNames.push(match[1]); // 只取姓氏
+          }
+
+          if (foundNames.length > 0) {
+            authors.push(...foundNames);
+          } else {
+            // 回退方案：按逗号分割，取每个看起来像姓的词
+            const commaParts = part.split(/,\s*/);
+            for (const cp of commaParts) {
+              const trimmed = cp.trim();
+              // 如果是单个大写字母（名缩写），跳过
+              if (/^[A-Z]\.?$/.test(trimmed)) continue;
+              // 如果看起来像姓氏（首字母大写，后面是小写）
+              if (/^[A-Z][a-z]+/.test(trimmed)) {
+                authors.push(trimmed.split(/\s+/)[0]);
+              }
+            }
+          }
+        }
+
+        return authors.filter(Boolean);
+      }
+
+      // ========== Nature/Science 格式解析（优化版） ==========
+      // 标准格式：Author, A. et al. Title. Journal Vol, Pages (Year).
+      // 示例：Smith, J. et al. Discovery of X. Nature 600, 100-110 (2023).
+      // 示例：Jones, A., Smith, B. & Lee, C. New findings. Science 380, 45-52 (2023).
+      function parseNature(s, year, doi) {
+        const result = {
+          raw: s,
+          year,
+          doi,
+          title: null,
+          journal: null,
+          volume: null,
+          issue: null,
+          firstPage: null,
+          lastPage: null,
+          authors: [],
+        };
+
+        // ===== 解析作者 =====
+        // 找到 "et al." 或最后一个作者
+        const etAlMatch = s.match(/^(.+?)\s+et\s+al\./i);
+
+        if (etAlMatch) {
+          // 有 "et al." 的情况
+          const authorPart = etAlMatch[1];
+          result.authors = parseNatureAuthors(authorPart);
+        } else {
+          // 没有 "et al."，需要找到作者部分的结尾
+          // Nature 格式作者后面紧跟标题（用点号分隔）
+          const firstDot = s.indexOf(".");
+          if (firstDot > 0) {
+            const possibleAuthor = s.slice(0, firstDot);
+            // 验证是否像作者（应该包含逗号和大写字母）
+            if (possibleAuthor.match(/[A-Z][a-z]+,\s*[A-Z]/)) {
+              result.authors = parseNatureAuthors(possibleAuthor);
+            }
+          }
+        }
+
+        // ===== 解析期刊、卷号、页码、年份 =====
+        // 核心模式：Journal Vol, Pages (Year)
+        const metaMatch = s.match(
+          /\.\s*([A-Z][a-zA-Z.\s]{1,40}?)\s+(\d{1,4})\s*,\s*(\d+)\s*[-–—]\s*(\d+)\s*\((\d{4})\)/
+        );
+
+        if (metaMatch) {
+          result.journal = metaMatch[1].trim();
+          result.volume = metaMatch[2];
+          result.firstPage = metaMatch[3];
+          result.lastPage = metaMatch[4];
+          result.year = parseInt(metaMatch[5], 10);
+
+          // 标题在作者和期刊之间
+          const journalIdx = s.indexOf(metaMatch[0]);
+          let beforeJournal = s.slice(0, journalIdx).trim();
+
+          // 移除作者部分（如果有 "et al."）
+          if (etAlMatch) {
+            beforeJournal = beforeJournal.slice(etAlMatch[0].length).trim();
+          } else if (result.authors.length > 0) {
+            // 移除第一部分（作者）
+            const firstDot = beforeJournal.indexOf(".");
+            if (firstDot > 0) {
+              beforeJournal = beforeJournal.slice(firstDot + 1).trim();
+            }
+          }
+
+          // 移除开头的点号
+          result.title = beforeJournal
+            .replace(/^\.\s*/, "")
+            .replace(/\.\s*$/, "")
+            .trim();
+        } else {
+          // 简化匹配：没有完整的页码范围
+          const simpleMatch = s.match(
+            /\.\s*([A-Z][a-zA-Z.\s]{1,40}?)\s+(\d{1,4})\s*,\s*(\d+)\s*\((\d{4})\)/
+          );
+
+          if (simpleMatch) {
+            result.journal = simpleMatch[1].trim();
+            result.volume = simpleMatch[2];
+            result.firstPage = simpleMatch[3];
+            result.year = parseInt(simpleMatch[4], 10);
+          }
+        }
+
+        return result;
+      }
+
+      // Nature 格式作者解析辅助函数
+      function parseNatureAuthors(authorStr) {
+        const authors = [];
+
+        // Nature 作者格式：Smith, J., Jones, A. & Lee, C.
+        // 或：Smith, J.
+        const parts = authorStr.split(/\s*&\s*|,\s*(?=[A-Z][a-z]+\s*,)/);
+
+        for (const part of parts) {
+          const trimmed = part.trim();
+          if (!trimmed) continue;
+
+          // 提取姓氏（第一个逗号前的内容）
+          const commaMatch = trimmed.match(/^([A-Z][a-zA-Z'-]+)\s*,/);
+          if (commaMatch) {
+            authors.push(commaMatch[1]);
+          } else {
+            // 没有逗号，可能是单个词
+            const wordMatch = trimmed.match(/^([A-Z][a-zA-Z'-]+)/);
+            if (wordMatch && wordMatch[1].length > 1) {
+              authors.push(wordMatch[1]);
+            }
+          }
+        }
+
+        return authors;
+      }
+
+      // ========== 通用格式解析（优化版兜底方案） ==========
+      // 用于处理无法识别为特定格式的参考文献
+      // 策略：基于常见模式进行智能提取，不做过度假设
+      function parseGeneric(s, year, doi) {
+        const result = {
+          raw: s,
+          year,
+          doi,
+          title: null,
+          journal: null,
+          volume: null,
+          issue: null,
+          firstPage: null,
+          lastPage: null,
+          authors: [],
+        };
+
+        // ===== 移除编号前缀 =====
+        let str = s.replace(/^\s*\[?\d+[\].)]\s*/, "").trim();
+
+        // ===== 策略1：尝试用点号分割（最常见的分隔方式） =====
+        const dotParts = str.split(/\.\s+/);
+
+        if (dotParts.length >= 2) {
+          // 第一部分通常是作者
+          const firstPart = dotParts[0];
+
+          // 判断第一部分是否像作者列表
+          const looksLikeAuthors =
+            // 中文作者：多个2-4字的中文名
+            firstPart.match(
+              /^[\u4e00-\u9fa5]{2,4}(?:[,，、]\s*[\u4e00-\u9fa5]{2,4})*/
+            ) ||
+            // 英文作者：Lastname, F. 或 Lastname F 格式
+            firstPart.match(/^[A-Z][a-z]+[,\s]+[A-Z]\.?/);
+
+          if (looksLikeAuthors) {
+            // 解析作者
+            result.authors = parseAuthorsGeneric(firstPart);
+
+            // 第二部分是标题
+            if (dotParts[1]) {
+              result.title = dotParts[1].trim().replace(/\.$/, "");
+            }
+
+            // 第三部分及之后是期刊和元数据
+            if (dotParts.length >= 3) {
+              const journalPart = dotParts.slice(2).join(". ");
+              result.journal = extractJournalGeneric(journalPart);
+            }
+          } else {
+            // 第一部分可能就是标题（某些格式作者在后面）
+            result.title = firstPart.trim().replace(/\.$/, "");
+          }
+        }
+
+        // ===== 策略2：如果没有提取到标题，尝试其他分隔符 =====
+        if (!result.title) {
+          // 尝试用逗号分割
+          const commaParts = str.split(/,\s*/);
+
+          if (commaParts.length >= 3) {
+            // 查找年份位置
+            let yearIdx = -1;
+            for (let i = 0; i < commaParts.length; i++) {
+              if (commaParts[i].match(/^\(?(19|20)\d{2}\)?$/)) {
+                yearIdx = i;
+                break;
+              }
+            }
+
+            if (yearIdx > 0 && yearIdx < commaParts.length - 1) {
+              // 年份前是作者
+              result.authors = commaParts
+                .slice(0, yearIdx)
+                .map((a) => a.trim().split(/\s+/)[0])
+                .filter((a) => a && a.length > 1 && !a.match(/^\d+$/));
+
+              // 年份后是标题
+              result.title = commaParts[yearIdx + 1].trim().replace(/\.$/, "");
+
+              // 再后是期刊
+              if (commaParts[yearIdx + 2]) {
+                result.journal = commaParts[yearIdx + 2]
+                  .trim()
+                  .replace(/\.$/, "");
+              }
+            }
+          }
+        }
+
+        // ===== 策略3：提取引号内的标题 =====
+        if (!result.title) {
+          const quotedTitle = str.match(/["'""'']([^"'""'']+)["'""'']/);
+          if (quotedTitle) {
+            result.title = quotedTitle[1].trim();
+          }
+        }
+
+        // ===== 策略4：提取斜体期刊名（星号包裹） =====
+        if (!result.journal) {
+          const italicJournal = str.match(/\*([^*]+)\*/);
+          if (italicJournal) {
+            result.journal = italicJournal[1].trim();
+          }
+        }
+
+        // ===== 提取卷期（通用模式） =====
+        const volumePatterns = [
+          /(\d+)\s*\(\s*(\d+)\s*\)/, // 101(8)
+          /\bvol\.?\s*(\d+)(?:\s*[,;]\s*no\.?\s*(\d+))?/i, // vol. 101, no. 8
+          /\bVol\s+(\d+)\s+No\.?\s*(\d+)/i, // Vol 101 No 8
+          /第\s*(\d+)\s*卷\s*第?\s*(\d+)\s*期/, // 第101卷第8期
+          /第\s*(\d+)\s*卷/, // 第101卷
+        ];
+
+        for (const pattern of volumePatterns) {
+          const match = str.match(pattern);
+          if (match) {
+            result.volume = match[1];
+            if (match[2]) result.issue = match[2];
+            break;
+          }
+        }
+
+        // ===== 提取页码（通用模式） =====
+        const pagePatterns = [
+          /[：:]\s*(\d+)\s*[-–—]\s*(\d+)/, // :100-200
+          /\bpp\.?\s*(\d+)\s*[-–—]\s*(\d+)/i, // pp. 100-200
+          /\bpages?\s*(\d+)\s*[-–—]\s*(\d+)/i, // page 100-200
+          /[,，]\s*(\d+)\s*[-–—]\s*(\d+)\s*[.，。]?\s*$/, // 末尾的 100-200
+          /\((\d+)\s*[-–—]\s*(\d+)\)/, // (100-200)
+        ];
+
+        for (const pattern of pagePatterns) {
+          const match = str.match(pattern);
+          if (match) {
+            // 验证页码的合理性（避免匹配到年份等）
+            const first = parseInt(match[1], 10);
+            const last = parseInt(match[2], 10);
+            if (first < last && first < 100000 && last - first < 10000) {
+              result.firstPage = match[1];
+              result.lastPage = match[2];
+              break;
+            }
+          }
+        }
+
+        // ===== 提取文章编号（如 MDPI 格式） =====
+        if (!result.firstPage) {
+          const articleNumMatch = str.match(/\)\s*[.,\s]*\((\d+)\)\s*[.,\s]*$/);
+          if (articleNumMatch) {
+            result.articleNumber = articleNumMatch[1];
+            result.firstPage = articleNumMatch[1];
+          }
+        }
+
+        // ===== 清理结果 =====
+        if (result.title) {
+          result.title = result.title.replace(/\.$/, "").trim();
+        }
+        if (result.journal) {
+          result.journal = result.journal
+            .replace(/^\*|\*$/g, "")
+            .replace(/\.$/, "")
+            .trim();
+        }
+
+        return result;
+      }
+
+      // 通用作者解析辅助函数
+      function parseAuthorsGeneric(authorStr) {
+        const authors = [];
+
+        // 移除 "et al." 或 "等"
+        const cleaned = authorStr
+          .replace(/\s*et\s+al\.?\s*$/i, "")
+          .replace(/\s*等\s*$/, "")
+          .trim();
+
+        // 尝试多种分隔符
+        const delimiters = [
+          /[;；]\s*/, // 分号
+          /,\s*(?:and|&)\s*/i, // 逗号后跟 and 或 &
+          /\s+(?:and|&)\s+/i, // 空格包围的 and 或 &
+          /[,，]\s*/, // 逗号
+          /[、]\s*/, // 顿号（中文）
+        ];
+
+        let parts = [cleaned];
+        for (const delimiter of delimiters) {
+          if (cleaned.match(delimiter)) {
+            parts = cleaned.split(delimiter);
+            break;
+          }
+        }
+
+        for (const part of parts) {
+          const trimmed = part.trim();
+          if (!trimmed) continue;
+
+          // 中文作者
+          if (/^[\u4e00-\u9fa5]+$/.test(trimmed)) {
+            authors.push(trimmed);
+            continue;
+          }
+
+          // 英文作者：提取姓氏
+          // 格式1：Lastname, Firstname
+          const commaMatch = trimmed.match(/^([A-Z][a-zA-Z'-]+)\s*,/);
+          if (commaMatch) {
+            authors.push(commaMatch[1]);
+            continue;
+          }
+
+          // 格式2：Firstname Lastname 或 F. Lastname
+          const parts2 = trimmed.split(/\s+/);
+          if (parts2.length > 0) {
+            // 取最后一个非缩写的词作为姓氏
+            for (let i = parts2.length - 1; i >= 0; i--) {
+              const p = parts2[i];
+              if (p && p.length > 1 && !p.match(/^[A-Z]\.?$/)) {
+                authors.push(p.replace(/[,.]$/, ""));
+                break;
+              }
+            }
+          }
+        }
+
+        return authors.filter((a) => a && a.length > 0);
+      }
+
+      // 通用期刊名提取辅助函数
+      function extractJournalGeneric(journalPart) {
+        // 期刊名通常在卷期信息之前
+        // 移除年份、卷期、页码等信息
+        let cleaned = journalPart
+          .replace(/\d{4}\s*[;:,]?\s*\d+\s*\(\d+\)\s*:\s*\d+.*$/, "") // 年;卷(期):页
+          .replace(/\d+\s*\(\d+\)\s*:\s*\d+.*$/, "") // 卷(期):页
+          .replace(/[,，]\s*\d+\s*[-–—]\s*\d+.*$/, "") // , 页码
+          .trim();
+
+        // 取第一个逗号前的内容
+        const firstComma = cleaned.indexOf(",");
+        if (firstComma > 0) {
+          cleaned = cleaned.substring(0, firstComma);
+        }
+
+        return cleaned.replace(/\.$/, "").trim();
+      }
+
+      async function queryOpenAlex(p, mailto) {
+        let url = new URL("https://api.openalex.org/works");
+        url.searchParams.set("per-page", "25");
+        if (mailto) url.searchParams.set("mailto", mailto);
+
+        if (p.doi) {
+          url.searchParams.set("filter", `doi:${p.doi.toLowerCase()}`);
+        } else {
+          url.searchParams.set("search", p.title || p.raw);
+          if (p.year)
+            url.searchParams.set("filter", `publication_year:${p.year}`);
+        }
+
+        const r = await fetch(url.toString());
+        if (!r.ok) throw new Error("OpenAlex 请求失败: " + r.status);
+        return await r.json();
+      }
+
+      async function queryCrossref(p, mailto) {
+        if (p.doi) {
+          const doiEnc = encodeURIComponent(p.doi.toLowerCase());
+          const url = new URL(`https://api.crossref.org/works/${doiEnc}`);
+          if (mailto) url.searchParams.set("mailto", mailto);
+
+          const r = await fetch(url.toString(), {
+            headers: { Accept: "application/json" },
+          });
+          if (!r.ok) throw new Error("Crossref DOI 精确查询失败: " + r.status);
+
+          const one = await r.json();
+          return { message: { items: [one.message] } };
+        }
+
+        let url = new URL("https://api.crossref.org/works");
+        url.searchParams.set("rows", "50");
+        if (mailto) url.searchParams.set("mailto", mailto);
+
+        if (p.title) url.searchParams.set("query.bibliographic", p.title);
+        if (p.journal) url.searchParams.set("query.container-title", p.journal);
+        if (p.authors && p.authors[0])
+          url.searchParams.set("query.author", p.authors[0]);
+        if (p.year)
+          url.searchParams.set(
+            "filter",
+            `from-pub-date:${p.year}-01-01,until-pub-date:${p.year}-12-31`
+          );
+
+        const r = await fetch(url.toString(), {
+          headers: { Accept: "application/json" },
+        });
+        if (!r.ok) throw new Error("Crossref 请求失败: " + r.status);
+        return await r.json();
+      }
+
+      /** ---------- 打分 ---------- */
+      function scoreOpenAlexWork(p, w) {
+        const t = jaccard(p.title, w.title || "");
+        const y = p.year && w.publication_year === p.year ? 1 : 0;
+        const j = jaccard(
+          p.journal,
+          w.primary_location?.source?.display_name || ""
+        );
+        const v =
+          p.volume &&
+          w.biblio?.volume &&
+          String(w.biblio.volume) === String(p.volume)
+            ? 1
+            : 0;
+        const i =
+          p.issue &&
+          w.biblio?.issue &&
+          String(w.biblio.issue) === String(p.issue)
+            ? 1
+            : 0;
+        const fp =
+          p.firstPage &&
+          w.biblio?.first_page &&
+          String(w.biblio.first_page) === String(p.firstPage)
+            ? 1
+            : 0;
+        const lp =
+          p.lastPage &&
+          w.biblio?.last_page &&
+          String(w.biblio.last_page) === String(p.lastPage)
+            ? 1
+            : 0;
+
+        const workAuthors = (w.authorships || [])
+          .map((a) => a.author?.display_name || "")
+          .join(" ");
+        const a = p.authors?.length
+          ? jaccard(p.authors.join(" "), workAuthors)
+          : 0;
+
+        return (
+          0.45 * t +
+          0.15 * a +
+          0.12 * j +
+          0.1 * y +
+          0.06 * v +
+          0.04 * i +
+          0.04 * fp +
+          0.04 * lp
+        );
+      }
+
+      function scoreCrossrefItem(p, it) {
+        const title = it.title && it.title[0] ? it.title[0] : "";
+        const container =
+          it["container-title"] && it["container-title"][0]
+            ? it["container-title"][0]
+            : "";
+        const issuedYear = it.issued?.["date-parts"]?.[0]?.[0];
+
+        const t = jaccard(p.title, title);
+        const j = jaccard(p.journal, container);
+        const y = p.year && issuedYear === p.year ? 1 : 0;
+
+        const crAuthors = (it.author || [])
+          .map((a) => a.family || "")
+          .join(" ");
+        const a = p.authors?.length
+          ? jaccard(p.authors.join(" "), crAuthors)
+          : 0;
+
+        const v =
+          p.volume && it.volume && String(it.volume) === String(p.volume)
+            ? 1
+            : 0;
+        const i =
+          p.issue && it.issue && String(it.issue) === String(p.issue) ? 1 : 0;
+        const page = it.page || "";
+        const fp = p.firstPage && page.includes(p.firstPage) ? 1 : 0;
+        const lp = p.lastPage && page.includes(p.lastPage) ? 1 : 0;
+
+        return (
+          0.45 * t +
+          0.15 * a +
+          0.12 * j +
+          0.1 * y +
+          0.06 * v +
+          0.04 * i +
+          0.04 * fp +
+          0.04 * lp
+        );
+      }
+
+      function getVerdict(score) {
+        if (score >= 0.78)
+          return { level: "high", text: "高可信", desc: "强匹配" };
+        if (score >= 0.55)
+          return { level: "medium", text: "中可信", desc: "需核对" };
+        return { level: "low", text: "低可信", desc: "可能伪造" };
+      }
+
+      /** ---------- 单条校验 ---------- */
+      async function verifySingle(raw, mailto) {
+        const p = parseCitation(raw);
+
+        const [oa, cr] = await Promise.all([
+          queryOpenAlex(p, mailto).catch((e) => ({ __error: e.message })),
+          queryCrossref(p, mailto).catch((e) => ({ __error: e.message })),
+        ]);
+
+        const oaItems = oa?.results || [];
+        const crItems = cr?.message?.items || [];
+
+        const oaBest = pickBest(oaItems, (w) => scoreOpenAlexWork(p, w));
+        const crBest = pickBest(crItems, (it) => scoreCrossrefItem(p, it));
+
+        const oaScore = oaBest?.best ? oaBest.bestScore : 0;
+        const crScore = crBest?.best ? crBest.bestScore : 0;
+        const combined =
+          Math.max(oaScore, crScore) * 0.6 + Math.min(oaScore, crScore) * 0.4;
+
+        return {
+          raw,
+          parsed: p,
+          oaBest,
+          crBest,
+          oaScore,
+          crScore,
+          combined,
+          verdict: getVerdict(combined),
+        };
+      }
+
+      /** ---------- UI 渲染 ---------- */
+      function renderResult(result, index) {
+        const {
+          raw,
+          parsed,
+          oaBest,
+          crBest,
+          oaScore,
+          crScore,
+          combined,
+          verdict,
+        } = result;
+        const oa = oaBest?.best;
+        const cr = crBest?.best;
+
+        return `
     <div class="result-item" data-index="${index}">
       <div class="result-header" onclick="toggleResult(${index})">
         <div class="result-index">${index + 1}</div>
         <div class="result-title">${esc(parsed.title || raw.slice(0, 80))}</div>
-        <div class="result-score ${verdict.level}">${verdict.text} ${combined.toFixed(2)}</div>
+        <div class="result-score ${verdict.level}">${
+          verdict.text
+        } ${combined.toFixed(2)}</div>
         <div class="result-toggle">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="6 9 12 15 18 9"></polyline>
@@ -1149,19 +2923,37 @@ function renderResult(result, index) {
           <h4>解析字段</h4>
           <div class="detail-grid">
             <div class="detail-label">原始引用</div>
-            <div class="detail-value" style="font-size:12px;color:var(--text-muted)">${esc(raw)}</div>
+            <div class="detail-value" style="font-size:12px;color:var(--text-muted)">${esc(
+              raw
+            )}</div>
             <div class="detail-label">标题</div>
             <div class="detail-value">${esc(parsed.title || "-")}</div>
             <div class="detail-label">作者</div>
-            <div class="detail-value">${esc((parsed.authors || []).join(", ") || "-")}</div>
+            <div class="detail-value">${esc(
+              (parsed.authors || []).join(", ") || "-"
+            )}</div>
             <div class="detail-label">期刊/出版社</div>
             <div class="detail-value">${esc(parsed.journal || "-")}</div>
             <div class="detail-label">年份</div>
             <div class="detail-value">${esc(parsed.year || "-")}</div>
             <div class="detail-label">卷(期):页码</div>
-            <div class="detail-value">${esc(parsed.volume || "-")}(${esc(parsed.issue || "-")}):${esc(parsed.firstPage || "-")}-${esc(parsed.lastPage || "-")}</div>
+            <div class="detail-value">${esc(parsed.volume || "-")}(${esc(
+          parsed.issue || "-"
+        )}):${
+          parsed.articleNumber
+            ? esc(parsed.articleNumber)
+            : esc(parsed.firstPage || "-") + "-" + esc(parsed.lastPage || "-")
+        }</div>
             <div class="detail-label">DOI</div>
             <div class="detail-value">${esc(parsed.doi || "未提供")}</div>
+            ${
+              parsed.arxivId
+                ? `<div class="detail-label">arXiv ID</div>
+            <div class="detail-value"><a href="https://arxiv.org/abs/${esc(
+              parsed.arxivId
+            )}" target="_blank">${esc(parsed.arxivId)}</a></div>`
+                : ""
+            }
           </div>
         </div>
 
@@ -1170,22 +2962,40 @@ function renderResult(result, index) {
             <span class="source-badge openalex">OpenAlex</span>
             <span class="score-inline">匹配分 ${oaScore.toFixed(3)}</span>
           </h4>
-          ${oa ? `
+          ${
+            oa
+              ? `
             <div class="detail-grid">
               <div class="detail-label">标题</div>
               <div class="detail-value">${esc(oa.title || "-")}</div>
               <div class="detail-label">来源</div>
-              <div class="detail-value">${esc(oa.primary_location?.source?.display_name || "-")}</div>
+              <div class="detail-value">${esc(
+                oa.primary_location?.source?.display_name || "-"
+              )}</div>
               <div class="detail-label">年份</div>
               <div class="detail-value">${esc(oa.publication_year || "-")}</div>
               <div class="detail-label">卷期页</div>
-              <div class="detail-value">${esc(oa.biblio?.volume || "-")}(${esc(oa.biblio?.issue || "-")}):${esc(oa.biblio?.first_page || "-")}-${esc(oa.biblio?.last_page || "-")}</div>
+              <div class="detail-value">${esc(oa.biblio?.volume || "-")}(${esc(
+                  oa.biblio?.issue || "-"
+                )}):${esc(oa.biblio?.first_page || "-")}-${esc(
+                  oa.biblio?.last_page || "-"
+                )}</div>
               <div class="detail-label">DOI</div>
-              <div class="detail-value">${oa.doi ? `<a href="https://doi.org/${esc(oa.doi.replace('https://doi.org/',''))}" target="_blank">${esc(oa.doi)}</a>` : "-"}</div>
+              <div class="detail-value">${
+                oa.doi
+                  ? `<a href="https://doi.org/${esc(
+                      oa.doi.replace("https://doi.org/", "")
+                    )}" target="_blank">${esc(oa.doi)}</a>`
+                  : "-"
+              }</div>
               <div class="detail-label">OpenAlex</div>
-              <div class="detail-value"><a href="${esc(oa.id)}" target="_blank">查看详情</a></div>
+              <div class="detail-value"><a href="${esc(
+                oa.id
+              )}" target="_blank">查看详情</a></div>
             </div>
-          ` : `<div style="color:var(--text-muted);font-size:13px">未找到匹配结果</div>`}
+          `
+              : `<div style="color:var(--text-muted);font-size:13px">未找到匹配结果</div>`
+          }
         </div>
 
         <div class="detail-section">
@@ -1193,20 +3003,38 @@ function renderResult(result, index) {
             <span class="source-badge crossref">Crossref</span>
             <span class="score-inline">匹配分 ${crScore.toFixed(3)}</span>
           </h4>
-          ${cr ? `
+          ${
+            cr
+              ? `
             <div class="detail-grid">
               <div class="detail-label">标题</div>
-              <div class="detail-value">${esc((cr.title && cr.title[0]) || "-")}</div>
+              <div class="detail-value">${esc(
+                (cr.title && cr.title[0]) || "-"
+              )}</div>
               <div class="detail-label">期刊</div>
-              <div class="detail-value">${esc((cr["container-title"] && cr["container-title"][0]) || "-")}</div>
+              <div class="detail-value">${esc(
+                (cr["container-title"] && cr["container-title"][0]) || "-"
+              )}</div>
               <div class="detail-label">年份</div>
-              <div class="detail-value">${esc(cr.issued?.["date-parts"]?.[0]?.[0] || "-")}</div>
+              <div class="detail-value">${esc(
+                cr.issued?.["date-parts"]?.[0]?.[0] || "-"
+              )}</div>
               <div class="detail-label">卷期页</div>
-              <div class="detail-value">${esc(cr.volume || "-")}(${esc(cr.issue || "-")}):${esc(cr.page || "-")}</div>
+              <div class="detail-value">${esc(cr.volume || "-")}(${esc(
+                  cr.issue || "-"
+                )}):${esc(cr.page || "-")}</div>
               <div class="detail-label">DOI</div>
-              <div class="detail-value">${cr.DOI ? `<a href="https://doi.org/${esc(cr.DOI)}" target="_blank">${esc(cr.DOI)}</a>` : "-"}</div>
+              <div class="detail-value">${
+                cr.DOI
+                  ? `<a href="https://doi.org/${esc(
+                      cr.DOI
+                    )}" target="_blank">${esc(cr.DOI)}</a>`
+                  : "-"
+              }</div>
             </div>
-          ` : `<div style="color:var(--text-muted);font-size:13px">未找到匹配结果</div>`}
+          `
+              : `<div style="color:var(--text-muted);font-size:13px">未找到匹配结果</div>`
+          }
         </div>
 
         <div class="detail-section">
@@ -1223,65 +3051,78 @@ function renderResult(result, index) {
       </div>
     </div>
   `;
-}
+      }
 
-function toggleResult(index) {
-  const item = document.querySelector(`.result-item[data-index="${index}"]`);
-  if (item) item.classList.toggle("expanded");
-}
+      function toggleResult(index) {
+        const item = document.querySelector(
+          `.result-item[data-index="${index}"]`
+        );
+        if (item) item.classList.toggle("expanded");
+      }
 
-function updateStats(results) {
-  const total = results.length;
-  const high = results.filter(r => r.verdict.level === "high").length;
-  const medium = results.filter(r => r.verdict.level === "medium").length;
-  const low = results.filter(r => r.verdict.level === "low").length;
+      function updateStats(results) {
+        const total = results.length;
+        const high = results.filter((r) => r.verdict.level === "high").length;
+        const medium = results.filter(
+          (r) => r.verdict.level === "medium"
+        ).length;
+        const low = results.filter((r) => r.verdict.level === "low").length;
 
-  document.getElementById("statTotal").textContent = total;
-  document.getElementById("statHigh").textContent = high;
-  document.getElementById("statMedium").textContent = medium;
-  document.getElementById("statLow").textContent = low;
-  document.getElementById("summary").classList.add("active");
+        document.getElementById("statTotal").textContent = total;
+        document.getElementById("statHigh").textContent = high;
+        document.getElementById("statMedium").textContent = medium;
+        document.getElementById("statLow").textContent = low;
+        document.getElementById("summary").classList.add("active");
 
-  // 显示导出区域
-  if (total > 0) {
-    document.getElementById("exportSection").classList.add("active");
-  }
+        // 显示导出区域
+        if (total > 0) {
+          document.getElementById("exportSection").classList.add("active");
+        }
 
-  // 保存结果到全局变量供导出使用
-  window.currentResults = results;
+        // 保存结果到全局变量供导出使用
+        window.currentResults = results;
 
-  // 校验完成后，如果有高可信条目，默认选择"高可信"
-  if (!window.extractedMode && high > 0) {
-    exportMode = "high";
-    document.querySelectorAll(".export-option").forEach(o => o.classList.remove("active"));
-    document.querySelector(".export-option[data-value='high']").classList.add("active");
-  } else {
-    switchToAll();
-  }
-}
+        // 校验完成后，如果有高可信条目，默认选择"高可信"
+        if (!window.extractedMode && high > 0) {
+          exportMode = "high";
+          document
+            .querySelectorAll(".export-option")
+            .forEach((o) => o.classList.remove("active"));
+          document
+            .querySelector(".export-option[data-value='high']")
+            .classList.add("active");
+        } else {
+          switchToAll();
+        }
+      }
 
-function updateProgress(current, total, status) {
-  const percent = total > 0 ? (current / total) * 100 : 0;
-  document.getElementById("progressFill").style.width = percent + "%";
-  document.getElementById("progressCount").textContent = `${current} / ${total}`;
-  document.getElementById("progressStatus").textContent = status;
-}
+      function updateProgress(current, total, status) {
+        const percent = total > 0 ? (current / total) * 100 : 0;
+        document.getElementById("progressFill").style.width = percent + "%";
+        document.getElementById(
+          "progressCount"
+        ).textContent = `${current} / ${total}`;
+        document.getElementById("progressStatus").textContent = status;
+      }
 
-/** ---------- 主逻辑 ---------- */
-document.getElementById("run").addEventListener("click", async () => {
-  const btn = document.getElementById("run");
-  const resultsDiv = document.getElementById("results");
-  const progressDiv = document.getElementById("progress");
-  const summaryDiv = document.getElementById("summary");
+      /** ---------- 主逻辑 ---------- */
+      document.getElementById("run").addEventListener("click", async () => {
+        const btn = document.getElementById("run");
+        const resultsDiv = document.getElementById("results");
+        const progressDiv = document.getElementById("progress");
+        const summaryDiv = document.getElementById("summary");
 
-  const rawText = document.getElementById("citation").value;
-  const mailto = document.getElementById("mailto").value.trim();
+        const rawText = document.getElementById("citation").value;
+        const mailto = document.getElementById("mailto").value.trim();
 
-  // 解析多行，过滤空行
-  const lines = rawText.split("\n").map(l => l.trim()).filter(Boolean);
+        // 解析多行，过滤空行
+        const lines = rawText
+          .split("\n")
+          .map((l) => l.trim())
+          .filter(Boolean);
 
-  if (lines.length === 0) {
-    resultsDiv.innerHTML = `
+        if (lines.length === 0) {
+          resultsDiv.innerHTML = `
       <div class="card empty-state">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
           <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
@@ -1289,215 +3130,246 @@ document.getElementById("run").addEventListener("click", async () => {
         <div>请输入至少一条引用</div>
       </div>
     `;
-    return;
-  }
+          return;
+        }
 
-  // 重置UI
-  btn.disabled = true;
-  const originalText = btn.textContent;
-  btn.innerHTML = `<span class="loading-spinner"></span> 校验中...`;
-  resultsDiv.innerHTML = "";
-  summaryDiv.classList.remove("active");
-  progressDiv.classList.add("active");
-  updateProgress(0, lines.length, "准备中...");
+        // 重置UI
+        btn.disabled = true;
+        const originalText = btn.textContent;
+        btn.innerHTML = `<span class="loading-spinner"></span> 校验中...`;
+        resultsDiv.innerHTML = "";
+        summaryDiv.classList.remove("active");
+        progressDiv.classList.add("active");
+        updateProgress(0, lines.length, "准备中...");
 
-  // 清除提取模式，校验完成后将使用校验结果生成 BibTeX
-  window.extractedMode = false;
+        // 清除提取模式，校验完成后将使用校验结果生成 BibTeX
+        window.extractedMode = false;
 
-  const results = [];
+        const results = [];
 
-  for (let i = 0; i < lines.length; i++) {
-    updateProgress(i, lines.length, `正在校验第 ${i + 1} 条...`);
+        for (let i = 0; i < lines.length; i++) {
+          updateProgress(i, lines.length, `正在校验第 ${i + 1} 条...`);
 
-    // 显示处理中占位
-    resultsDiv.innerHTML += `<div class="processing-item" id="processing-${i}">正在校验：${esc(lines[i].slice(0, 60))}...</div>`;
+          // 显示处理中占位
+          resultsDiv.innerHTML += `<div class="processing-item" id="processing-${i}">正在校验：${esc(
+            lines[i].slice(0, 60)
+          )}...</div>`;
 
-    try {
-      const result = await verifySingle(lines[i], mailto);
-      results.push(result);
+          try {
+            const result = await verifySingle(lines[i], mailto);
+            results.push(result);
 
-      // 替换占位为真实结果
-      const placeholder = document.getElementById(`processing-${i}`);
-      if (placeholder) {
-        placeholder.outerHTML = renderResult(result, i);
-      }
-    } catch (e) {
-      results.push({
-        raw: lines[i],
-        parsed: parseCitation(lines[i]),
-        oaBest: null,
-        crBest: null,
-        oaScore: 0,
-        crScore: 0,
-        combined: 0,
-        verdict: { level: "low", text: "错误", desc: e.message }
+            // 替换占位为真实结果
+            const placeholder = document.getElementById(`processing-${i}`);
+            if (placeholder) {
+              placeholder.outerHTML = renderResult(result, i);
+            }
+          } catch (e) {
+            results.push({
+              raw: lines[i],
+              parsed: parseCitation(lines[i]),
+              oaBest: null,
+              crBest: null,
+              oaScore: 0,
+              crScore: 0,
+              combined: 0,
+              verdict: { level: "low", text: "错误", desc: e.message },
+            });
+
+            const placeholder = document.getElementById(`processing-${i}`);
+            if (placeholder) {
+              placeholder.outerHTML = renderResult(
+                results[results.length - 1],
+                i
+              );
+            }
+          }
+
+          // 添加小延迟避免请求过快
+          if (i < lines.length - 1) {
+            await new Promise((r) => setTimeout(r, 300));
+          }
+        }
+
+        updateProgress(lines.length, lines.length, "校验完成");
+        updateStats(results);
+
+        btn.disabled = false;
+        btn.textContent = originalText;
+
+        // 隐藏进度条
+        setTimeout(() => {
+          progressDiv.classList.remove("active");
+        }, 1000);
       });
 
-      const placeholder = document.getElementById(`processing-${i}`);
-      if (placeholder) {
-        placeholder.outerHTML = renderResult(results[results.length - 1], i);
+      document.getElementById("clear").addEventListener("click", () => {
+        document.getElementById("citation").value = "";
+        document.getElementById("results").innerHTML = "";
+        document.getElementById("summary").classList.remove("active");
+        document.getElementById("progress").classList.remove("active");
+        document.getElementById("exportSection").classList.remove("active");
+        window.currentResults = [];
+      });
+
+      /** ---------- BibTeX 导出功能 ---------- */
+      // 显示提示消息
+      function showToast(message) {
+        const toast = document.getElementById("toast");
+        toast.textContent = message;
+        toast.classList.add("show");
+        setTimeout(() => toast.classList.remove("show"), 2000);
       }
-    }
 
-    // 添加小延迟避免请求过快
-    if (i < lines.length - 1) {
-      await new Promise(r => setTimeout(r, 300));
-    }
-  }
+      // 导出模式：all 或 high
+      let exportMode = "all";
 
-  updateProgress(lines.length, lines.length, "校验完成");
-  updateStats(results);
+      // 选择器切换
+      document.querySelectorAll(".export-option").forEach((option) => {
+        option.addEventListener("click", () => {
+          document
+            .querySelectorAll(".export-option")
+            .forEach((o) => o.classList.remove("active"));
+          option.classList.add("active");
+          exportMode = option.dataset.value;
+        });
+      });
 
-  btn.disabled = false;
-  btn.textContent = originalText;
-
-  // 隐藏进度条
-  setTimeout(() => {
-    progressDiv.classList.remove("active");
-  }, 1000);
-});
-
-document.getElementById("clear").addEventListener("click", () => {
-  document.getElementById("citation").value = "";
-  document.getElementById("results").innerHTML = "";
-  document.getElementById("summary").classList.remove("active");
-  document.getElementById("progress").classList.remove("active");
-  document.getElementById("exportSection").classList.remove("active");
-  window.currentResults = [];
-});
-
-/** ---------- BibTeX 导出功能 ---------- */
-// 显示提示消息
-function showToast(message) {
-  const toast = document.getElementById("toast");
-  toast.textContent = message;
-  toast.classList.add("show");
-  setTimeout(() => toast.classList.remove("show"), 2000);
-}
-
-// 导出模式：all 或 high
-let exportMode = "all";
-
-// 选择器切换
-document.querySelectorAll(".export-option").forEach(option => {
-  option.addEventListener("click", () => {
-    document.querySelectorAll(".export-option").forEach(o => o.classList.remove("active"));
-    option.classList.add("active");
-    exportMode = option.dataset.value;
-  });
-});
-
-// 切换到全部模式
-function switchToAll() {
-  exportMode = "all";
-  document.querySelectorAll(".export-option").forEach(o => o.classList.remove("active"));
-  document.querySelector(".export-option[data-value='all']").classList.add("active");
-}
-
-// 获取要导出的结果和智能提示信息
-function getResultsForExport() {
-  const results = window.currentResults || [];
-  if (results.length === 0) return { results: [], message: "暂无结果", needSwitch: false };
-
-  // 提取模式下没有高可信概念
-  if (window.extractedMode && results[0]?.isExtracted) {
-    if (exportMode === "high") {
-      return { results: [], message: "未经过校验，无高可信条目", needSwitch: true };
-    }
-    return { results, message: "", needSwitch: false };
-  }
-
-  if (exportMode === "high") {
-    const highResults = results.filter(r => r.verdict.level === "high");
-    if (highResults.length === 0) {
-      const medium = results.filter(r => r.verdict.level === "medium").length;
-      const low = results.filter(r => r.verdict.level === "low").length;
-      if (medium > 0 || low > 0) {
-        return { results: [], message: `无高可信条目（${medium}中可信/${low}低可信）`, needSwitch: true };
+      // 切换到全部模式
+      function switchToAll() {
+        exportMode = "all";
+        document
+          .querySelectorAll(".export-option")
+          .forEach((o) => o.classList.remove("active"));
+        document
+          .querySelector(".export-option[data-value='all']")
+          .classList.add("active");
       }
-      return { results: [], message: "无高可信条目", needSwitch: true };
-    }
-    return { results: highResults, message: "", needSwitch: false };
-  }
 
-  return { results, message: "", needSwitch: false };
-}
+      // 获取要导出的结果和智能提示信息
+      function getResultsForExport() {
+        const results = window.currentResults || [];
+        if (results.length === 0)
+          return { results: [], message: "暂无结果", needSwitch: false };
 
-// 生成 BibTeX 字符串
-function generateBibTeXString(results) {
-  if (results.length === 0) return "";
+        // 提取模式下没有高可信概念
+        if (window.extractedMode && results[0]?.isExtracted) {
+          if (exportMode === "high") {
+            return {
+              results: [],
+              message: "未经过校验，无高可信条目",
+              needSwitch: true,
+            };
+          }
+          return { results, message: "", needSwitch: false };
+        }
 
-  const isExtractedMode = window.extractedMode && results[0]?.isExtracted;
-  return results.map(r =>
-    isExtractedMode ? generateBibTeXFromParsed(r.parsed) : generateBibTeX(r)
-  ).join("\n\n");
-}
+        if (exportMode === "high") {
+          const highResults = results.filter((r) => r.verdict.level === "high");
+          if (highResults.length === 0) {
+            const medium = results.filter(
+              (r) => r.verdict.level === "medium"
+            ).length;
+            const low = results.filter((r) => r.verdict.level === "low").length;
+            if (medium > 0 || low > 0) {
+              return {
+                results: [],
+                message: `无高可信条目（${medium}中可信/${low}低可信）`,
+                needSwitch: true,
+              };
+            }
+            return { results: [], message: "无高可信条目", needSwitch: true };
+          }
+          return { results: highResults, message: "", needSwitch: false };
+        }
 
-// 下载 BibTeX
-document.getElementById("exportBib").addEventListener("click", () => {
-  const { results, message, needSwitch } = getResultsForExport();
-  if (results.length === 0) {
-    showToast(message);
-    if (needSwitch) switchToAll();
-    return;
-  }
+        return { results, message: "", needSwitch: false };
+      }
 
-  const allBibtex = generateBibTeXString(results);
-  const filename = `citations_${new Date().toISOString().slice(0, 10)}.bib`;
-  downloadFile(allBibtex, filename);
-  showToast(`已下载 ${results.length} 条 BibTeX`);
-});
+      // 生成 BibTeX 字符串
+      function generateBibTeXString(results) {
+        if (results.length === 0) return "";
 
-// 复制 BibTeX
-document.getElementById("copyBib").addEventListener("click", async () => {
-  const { results, message, needSwitch } = getResultsForExport();
-  if (results.length === 0) {
-    showToast(message);
-    if (needSwitch) switchToAll();
-    return;
-  }
+        const isExtractedMode = window.extractedMode && results[0]?.isExtracted;
+        return results
+          .map((r) =>
+            isExtractedMode
+              ? generateBibTeXFromParsed(r.parsed)
+              : generateBibTeX(r)
+          )
+          .join("\n\n");
+      }
 
-  const allBibtex = generateBibTeXString(results);
-  const success = await copyToClipboard(allBibtex);
+      // 下载 BibTeX
+      document.getElementById("exportBib").addEventListener("click", () => {
+        const { results, message, needSwitch } = getResultsForExport();
+        if (results.length === 0) {
+          showToast(message);
+          if (needSwitch) switchToAll();
+          return;
+        }
 
-  if (success) {
-    showToast(`已复制 ${results.length} 条 BibTeX`);
-  } else {
-    showToast("复制失败，请重试");
-  }
-});
+        const allBibtex = generateBibTeXString(results);
+        const filename = `citations_${new Date()
+          .toISOString()
+          .slice(0, 10)}.bib`;
+        downloadFile(allBibtex, filename);
+        showToast(`已下载 ${results.length} 条 BibTeX`);
+      });
 
-// 复制单个 BibTeX（结果项内）
-async function copyBibTeX(index, button) {
-  const results = window.currentResults || [];
-  if (!results[index]) return;
+      // 复制 BibTeX
+      document.getElementById("copyBib").addEventListener("click", async () => {
+        const { results, message, needSwitch } = getResultsForExport();
+        if (results.length === 0) {
+          showToast(message);
+          if (needSwitch) switchToAll();
+          return;
+        }
 
-  const isExtracted = window.extractedMode && results[index]?.isExtracted;
-  const bibtex = isExtracted
-    ? generateBibTeXFromParsed(results[index].parsed)
-    : generateBibTeX(results[index]);
-  const success = await copyToClipboard(bibtex);
+        const allBibtex = generateBibTeXString(results);
+        const success = await copyToClipboard(allBibtex);
 
-  if (success) {
-    const originalText = button.innerHTML;
-    button.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg> 已复制`;
-    setTimeout(() => button.innerHTML = originalText, 2000);
-  } else {
-    showToast("复制失败，请重试");
-  }
-}
+        if (success) {
+          showToast(`已复制 ${results.length} 条 BibTeX`);
+        } else {
+          showToast("复制失败，请重试");
+        }
+      });
 
-// 提取 BibTeX（不调用 API）
-document.getElementById("extractBib").addEventListener("click", () => {
-  const rawText = document.getElementById("citation").value;
-  const resultsDiv = document.getElementById("results");
-  const summaryDiv = document.getElementById("summary");
-  const exportSection = document.getElementById("exportSection");
+      // 复制单个 BibTeX（结果项内）
+      async function copyBibTeX(index, button) {
+        const results = window.currentResults || [];
+        if (!results[index]) return;
 
-  const lines = rawText.split("\n").map(l => l.trim()).filter(Boolean);
+        const isExtracted = window.extractedMode && results[index]?.isExtracted;
+        const bibtex = isExtracted
+          ? generateBibTeXFromParsed(results[index].parsed)
+          : generateBibTeX(results[index]);
+        const success = await copyToClipboard(bibtex);
 
-  if (lines.length === 0) {
-    resultsDiv.innerHTML = `
+        if (success) {
+          const originalText = button.innerHTML;
+          button.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg> 已复制`;
+          setTimeout(() => (button.innerHTML = originalText), 2000);
+        } else {
+          showToast("复制失败，请重试");
+        }
+      }
+
+      // 提取 BibTeX（不调用 API）
+      document.getElementById("extractBib").addEventListener("click", () => {
+        const rawText = document.getElementById("citation").value;
+        const resultsDiv = document.getElementById("results");
+        const summaryDiv = document.getElementById("summary");
+        const exportSection = document.getElementById("exportSection");
+
+        const lines = rawText
+          .split("\n")
+          .map((l) => l.trim())
+          .filter(Boolean);
+
+        if (lines.length === 0) {
+          resultsDiv.innerHTML = `
       <div class="card empty-state">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
           <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
@@ -1505,52 +3377,58 @@ document.getElementById("extractBib").addEventListener("click", () => {
         <div>请输入至少一条引用</div>
       </div>
     `;
-    return;
-  }
+          return;
+        }
 
-  // 生成仅解析的结果（不调用 API）
-  const results = lines.map((line, i) => {
-    const parsed = parseCitation(line);
-    return {
-      raw: line,
-      parsed: parsed,
-      oaBest: null,
-      crBest: null,
-      oaScore: 0,
-      crScore: 0,
-      combined: 0,
-      verdict: { level: "medium", text: "未校验", desc: "基于解析" },
-      isExtracted: true  // 标记为仅提取，未校验
-    };
-  });
+        // 生成仅解析的结果（不调用 API）
+        const results = lines.map((line, i) => {
+          const parsed = parseCitation(line);
+          return {
+            raw: line,
+            parsed: parsed,
+            oaBest: null,
+            crBest: null,
+            oaScore: 0,
+            crScore: 0,
+            combined: 0,
+            verdict: { level: "medium", text: "未校验", desc: "基于解析" },
+            isExtracted: true, // 标记为仅提取，未校验
+          };
+        });
 
-  // 显示结果
-  resultsDiv.innerHTML = results.map((r, i) => renderExtractedResult(r, i)).join('');
+        // 显示结果
+        resultsDiv.innerHTML = results
+          .map((r, i) => renderExtractedResult(r, i))
+          .join("");
 
-  // 更新统计
-  const total = results.length;
-  document.getElementById("statTotal").textContent = total;
-  document.getElementById("statHigh").textContent = "-";
-  document.getElementById("statMedium").textContent = "-";
-  document.getElementById("statLow").textContent = "-";
-  summaryDiv.classList.add("active");
-  exportSection.classList.add("active");
+        // 更新统计
+        const total = results.length;
+        document.getElementById("statTotal").textContent = total;
+        document.getElementById("statHigh").textContent = "-";
+        document.getElementById("statMedium").textContent = "-";
+        document.getElementById("statLow").textContent = "-";
+        summaryDiv.classList.add("active");
+        exportSection.classList.add("active");
 
-  // 保存结果到全局变量
-  window.currentResults = results;
-  window.extractedMode = true;  // 标记当前为提取模式
+        // 保存结果到全局变量
+        window.currentResults = results;
+        window.extractedMode = true; // 标记当前为提取模式
 
-  // 提取模式下重置选择器为"全部"
-  exportMode = "all";
-  document.querySelectorAll(".export-option").forEach(o => o.classList.remove("active"));
-  document.querySelector(".export-option[data-value='all']").classList.add("active");
-});
+        // 提取模式下重置选择器为"全部"
+        exportMode = "all";
+        document
+          .querySelectorAll(".export-option")
+          .forEach((o) => o.classList.remove("active"));
+        document
+          .querySelector(".export-option[data-value='all']")
+          .classList.add("active");
+      });
 
-// 渲染仅提取的结果（不调用 API）
-function renderExtractedResult(result, index) {
-  const { raw, parsed } = result;
+      // 渲染仅提取的结果（不调用 API）
+      function renderExtractedResult(result, index) {
+        const { raw, parsed } = result;
 
-  return `
+        return `
     <div class="result-item" data-index="${index}">
       <div class="result-header" onclick="toggleResult(${index})">
         <div class="result-index">${index + 1}</div>
@@ -1567,25 +3445,45 @@ function renderExtractedResult(result, index) {
           <h4>解析字段</h4>
           <div class="detail-grid">
             <div class="detail-label">原始引用</div>
-            <div class="detail-value" style="font-size:12px;color:var(--text-muted)">${esc(raw)}</div>
+            <div class="detail-value" style="font-size:12px;color:var(--text-muted)">${esc(
+              raw
+            )}</div>
             <div class="detail-label">标题</div>
             <div class="detail-value">${esc(parsed.title || "-")}</div>
             <div class="detail-label">作者</div>
-            <div class="detail-value">${esc((parsed.authors || []).join(", ") || "-")}</div>
+            <div class="detail-value">${esc(
+              (parsed.authors || []).join(", ") || "-"
+            )}</div>
             <div class="detail-label">期刊/出版社</div>
             <div class="detail-value">${esc(parsed.journal || "-")}</div>
             <div class="detail-label">年份</div>
             <div class="detail-value">${esc(parsed.year || "-")}</div>
             <div class="detail-label">卷(期):页码</div>
-            <div class="detail-value">${esc(parsed.volume || "-")}(${esc(parsed.issue || "-")}):${esc(parsed.firstPage || "-")}-${esc(parsed.lastPage || "-")}</div>
+            <div class="detail-value">${esc(parsed.volume || "-")}(${esc(
+          parsed.issue || "-"
+        )}):${
+          parsed.articleNumber
+            ? esc(parsed.articleNumber)
+            : esc(parsed.firstPage || "-") + "-" + esc(parsed.lastPage || "-")
+        }</div>
             <div class="detail-label">DOI</div>
             <div class="detail-value">${esc(parsed.doi || "未提供")}</div>
+            ${
+              parsed.arxivId
+                ? `<div class="detail-label">arXiv ID</div>
+            <div class="detail-value"><a href="https://arxiv.org/abs/${esc(
+              parsed.arxivId
+            )}" target="_blank">${esc(parsed.arxivId)}</a></div>`
+                : ""
+            }
           </div>
         </div>
 
         <div class="detail-section">
           <h4> BibTeX 预览</h4>
-          <pre style="background:var(--bg);padding:12px;border-radius:8px;font-size:12px;overflow-x:auto;max-height:200px;overflow-y:auto;border:1px solid var(--border);">${esc(generateBibTeXFromParsed(parsed))}</pre>
+          <pre style="background:var(--bg);padding:12px;border-radius:8px;font-size:12px;overflow-x:auto;max-height:200px;overflow-y:auto;border:1px solid var(--border);">${esc(
+            generateBibTeXFromParsed(parsed)
+          )}</pre>
         </div>
 
         <div class="detail-section">
@@ -1602,29 +3500,29 @@ function renderExtractedResult(result, index) {
       </div>
     </div>
   `;
-}
+      }
 
-// 复制提取模式的单个 BibTeX
-async function copyExtractedBib(index, button) {
-  const results = window.currentResults || [];
-  if (!results[index]) return;
+      // 复制提取模式的单个 BibTeX
+      async function copyExtractedBib(index, button) {
+        const results = window.currentResults || [];
+        if (!results[index]) return;
 
-  const bibtex = generateBibTeXFromParsed(results[index].parsed);
-  const success = await copyToClipboard(bibtex);
+        const bibtex = generateBibTeXFromParsed(results[index].parsed);
+        const success = await copyToClipboard(bibtex);
 
-  if (success) {
-    const originalText = button.innerHTML;
-    button.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg> 已复制`;
-    setTimeout(() => button.innerHTML = originalText, 2000);
-  } else {
-    showToast("复制失败，请重试");
-  }
-}
+        if (success) {
+          const originalText = button.innerHTML;
+          button.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg> 已复制`;
+          setTimeout(() => (button.innerHTML = originalText), 2000);
+        } else {
+          showToast("复制失败，请重试");
+        }
+      }
 
-// 默认展开第一个结果
-window.toggleResult = toggleResult;
-window.copyBibTeX = copyBibTeX;
-window.copyExtractedBib = copyExtractedBib;
-</script>
-</body>
+      // 默认展开第一个结果
+      window.toggleResult = toggleResult;
+      window.copyBibTeX = copyBibTeX;
+      window.copyExtractedBib = copyExtractedBib;
+    </script>
+  </body>
 </html>

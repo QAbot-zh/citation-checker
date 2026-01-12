@@ -228,6 +228,36 @@
       transform: translateY(0);
     }
 
+    .btn-info {
+      background: linear-gradient(135deg, #0ea5e9 0%, #38bdf8 100%);
+      color: white;
+      box-shadow: 0 4px 14px 0 rgba(14, 165, 233, 0.35);
+    }
+
+    .btn-info:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px 0 rgba(14, 165, 233, 0.45);
+    }
+
+    .btn-info:active {
+      transform: translateY(0);
+    }
+
+    .btn-github {
+      background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
+      color: white;
+      box-shadow: 0 4px 14px 0 rgba(55, 65, 81, 0.35);
+    }
+
+    .btn-github:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px 0 rgba(55, 65, 81, 0.45);
+    }
+
+    .btn-github:active {
+      transform: translateY(0);
+    }
+
     .actions {
       display: flex;
       flex-wrap: wrap;
@@ -316,8 +346,8 @@
       margin-bottom: 16px;
       border: 1px solid var(--border);
       box-shadow: var(--shadow);
-      overflow: hidden;
       animation: slideIn 0.3s ease;
+      position: relative;
     }
 
     @keyframes slideIn {
@@ -339,6 +369,12 @@
       cursor: pointer;
       user-select: none;
       transition: background 0.2s;
+      border-radius: 12px;
+      background: var(--card-bg);
+    }
+
+    .result-item.expanded .result-header {
+      border-radius: 12px 12px 0 0;
     }
 
     .result-header:hover {
@@ -373,6 +409,19 @@
       font-size: 13px;
       font-weight: 600;
       flex-shrink: 0;
+      transition: all 0.2s ease;
+      cursor: help;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .result-score::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
     }
 
     .result-score.high {
@@ -380,14 +429,29 @@
       color: var(--success);
     }
 
+    .result-score.high::before {
+      background: linear-gradient(135deg, var(--success) 0%, #34d399 100%);
+      box-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
+    }
+
     .result-score.medium {
       background: rgba(245, 158, 11, 0.1);
       color: var(--warning);
     }
 
+    .result-score.medium::before {
+      background: linear-gradient(135deg, var(--warning) 0%, #fbbf24 100%);
+      box-shadow: 0 0 6px rgba(245, 158, 11, 0.4);
+    }
+
     .result-score.low {
       background: rgba(239, 68, 68, 0.1);
       color: var(--danger);
+    }
+
+    .result-score.low::before {
+      background: linear-gradient(135deg, var(--danger) 0%, #f87171 100%);
+      box-shadow: 0 0 6px rgba(239, 68, 68, 0.4);
     }
 
     .result-toggle {
@@ -408,6 +472,8 @@
       display: none;
       padding: 0 20px 20px;
       border-top: 1px solid var(--border);
+      border-radius: 0 0 12px 12px;
+      background: var(--card-bg);
     }
 
     .result-item.expanded .result-details {
@@ -453,27 +519,172 @@
     .source-badge {
       display: inline-flex;
       align-items: center;
-      gap: 4px;
-      padding: 4px 10px;
-      border-radius: 6px;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 8px;
       font-size: 12px;
-      font-weight: 500;
+      font-weight: 600;
       margin-right: 8px;
+      letter-spacing: 0.3px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+      transition: all 0.2s ease;
+    }
+
+    .source-badge::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
     }
 
     .source-badge.openalex {
-      background: rgba(79, 70, 229, 0.1);
+      background: linear-gradient(135deg, rgba(79, 70, 229, 0.12) 0%, rgba(129, 140, 248, 0.12) 100%);
       color: var(--primary);
+      border: 1px solid rgba(79, 70, 229, 0.2);
+    }
+
+    .source-badge.openalex::before {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+      box-shadow: 0 0 6px rgba(79, 70, 229, 0.4);
     }
 
     .source-badge.crossref {
-      background: rgba(245, 158, 11, 0.1);
-      color: var(--warning);
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(251, 191, 36, 0.12) 100%);
+      color: #b45309;
+      border: 1px solid rgba(245, 158, 11, 0.25);
+    }
+
+    .source-badge.crossref::before {
+      background: linear-gradient(135deg, var(--warning) 0%, #fbbf24 100%);
+      box-shadow: 0 0 6px rgba(245, 158, 11, 0.4);
+    }
+
+    .score-tooltip-wrapper:hover .source-badge {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    /* Tooltip 样式 */
+    .score-tooltip-wrapper {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      cursor: help;
+      padding: 4px 0;
+    }
+
+    .score-tooltip {
+      position: absolute;
+      bottom: calc(100% + 10px);
+      left: 0;
+      transform: translateX(0);
+      background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+      color: white;
+      padding: 14px 16px;
+      border-radius: 12px;
+      font-size: 12px;
+      white-space: nowrap;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.25s ease;
+      z-index: 1000;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2), 0 4px 10px rgba(0,0,0,0.1);
+      min-width: 240px;
+      border: 1px solid rgba(255,255,255,0.1);
+      pointer-events: none;
+    }
+
+    .score-tooltip::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 24px;
+      transform: translateX(0);
+      border: 8px solid transparent;
+      border-top-color: #334155;
+    }
+
+    .score-tooltip-wrapper:hover .score-tooltip {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(-4px);
+    }
+
+    .score-tooltip-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 5px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .score-tooltip-row:last-child {
+      border-bottom: none;
+      padding-top: 10px;
+      margin-top: 6px;
+      border-top: 1px solid rgba(255,255,255,0.2);
+      font-weight: 600;
+    }
+
+    .score-tooltip-label {
+      color: rgba(255,255,255,0.65);
+      font-size: 11px;
+    }
+
+    .score-tooltip-value {
+      font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(255,255,255,0.08);
+    }
+
+    .score-tooltip-value.good {
+      color: #34d399;
+      background: rgba(52, 211, 153, 0.15);
+    }
+
+    .score-tooltip-value.medium {
+      color: #fbbf24;
+      background: rgba(251, 191, 36, 0.15);
+    }
+
+    .score-tooltip-value.bad {
+      color: #f87171;
+      background: rgba(248, 113, 113, 0.15);
     }
 
     .score-inline {
-      font-size: 12px;
+      font-size: 13px;
       color: var(--text-muted);
+      font-weight: 500;
+      background: var(--bg);
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+
+    /* 折叠头部的 tooltip 特殊定位 */
+    .result-score-wrapper {
+      padding: 0;
+    }
+
+    .result-score-wrapper .score-tooltip {
+      left: auto;
+      right: 0;
+      transform: translateX(0);
+    }
+
+    .result-score-wrapper .score-tooltip::after {
+      left: auto;
+      right: 24px;
+    }
+
+    .result-score-wrapper:hover .result-score {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
 
     .empty-state {
@@ -616,6 +827,235 @@
       transform: translateX(-50%) translateY(0);
       opacity: 1;
     }
+
+    /* 图标按钮 */
+    .icon-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--card-bg);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .icon-btn:hover {
+      background: var(--bg);
+      color: var(--text);
+      border-color: #cbd5e1;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .icon-btn:active {
+      transform: translateY(0);
+    }
+
+    .helper-btns {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    /* 弹窗样式 */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(4px);
+    }
+
+    .modal-overlay.show {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal {
+      background: var(--card-bg);
+      border-radius: 16px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+      max-width: 600px;
+      width: 90%;
+      max-height: 80vh;
+      overflow: hidden;
+      transform: scale(0.9) translateY(20px);
+      transition: all 0.3s ease;
+    }
+
+    .modal-overlay.show .modal {
+      transform: scale(1) translateY(0);
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+      color: white;
+    }
+
+    .modal-header h3 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .modal-close {
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: rgba(255,255,255,0.2);
+      border-radius: 8px;
+      color: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+
+    .modal-close:hover {
+      background: rgba(255,255,255,0.3);
+    }
+
+    .modal-body {
+      padding: 24px;
+      overflow-y: auto;
+      max-height: calc(80vh - 80px);
+    }
+
+    .score-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    .score-table th,
+    .score-table td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .score-table th {
+      background: var(--bg);
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .score-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .score-table .weight {
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    .verdict-table {
+      margin-top: 20px;
+    }
+
+    .verdict-table .high { color: var(--success); }
+    .verdict-table .medium { color: var(--warning); }
+    .verdict-table .low { color: var(--danger); }
+
+    .formula-box {
+      background: var(--bg);
+      border-radius: 10px;
+      padding: 16px;
+      margin: 16px 0;
+      font-family: 'SF Mono', Monaco, monospace;
+      font-size: 13px;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .formula-box code {
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    /* 双列布局 */
+    .sources-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    @media (max-width: 768px) {
+      .sources-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .source-card {
+      background: var(--bg);
+      border-radius: 12px;
+      padding: 16px;
+      border: 1px solid var(--border);
+    }
+
+    .source-card h4 {
+      margin: 0 0 12px 0;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .source-card .detail-grid {
+      font-size: 12px;
+    }
+
+    .source-card .detail-label {
+      font-size: 11px;
+    }
+
+    .link-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 500;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      background: rgba(79, 70, 229, 0.1);
+      color: var(--primary);
+      border: 1px solid rgba(79, 70, 229, 0.2);
+    }
+
+    .link-badge:hover {
+      background: rgba(79, 70, 229, 0.15);
+      transform: translateY(-1px);
+      text-decoration: none;
+    }
+
+    .link-badge svg {
+      width: 12px;
+      height: 12px;
+    }
   </style>
 </head>
 <body>
@@ -645,6 +1085,23 @@
           </button>
           <button id="clear" class="btn btn-clear" title="清空输入和结果">
             清空
+          </button>
+        </div>
+
+        <div class="helper-btns">
+          <button id="showScoreRules" class="btn btn-info btn-small" title="查看打分标准">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <circle cx="12" cy="12" r="10"></circle>
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+              <line x1="12" y1="17" x2="12.01" y2="17"></line>
+            </svg>
+            打分标准
+          </button>
+          <button id="feedback" class="btn btn-github btn-small" title="反馈问题">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+            </svg>
+            问题反馈
           </button>
         </div>
       </div>
@@ -708,6 +1165,72 @@
 
   <div id="toast" class="toast">已复制到剪贴板</div>
 
+  <!-- 打分标准弹窗 -->
+  <div id="scoreRulesModal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>打分标准说明</h3>
+        <button class="modal-close" onclick="closeScoreRulesModal()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <h4 style="margin: 0 0 12px 0; color: var(--text);">字段权重</h4>
+        <table class="score-table">
+          <thead>
+            <tr>
+              <th>字段</th>
+              <th>权重</th>
+              <th>计算方式</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>标题</td><td class="weight">45%</td><td>Jaccard 相似度</td></tr>
+            <tr><td>作者</td><td class="weight">15%</td><td>姓氏匹配 + Jaccard</td></tr>
+            <tr><td>期刊</td><td class="weight">12%</td><td>编辑距离 + 前缀匹配</td></tr>
+            <tr><td>年份</td><td class="weight">10%</td><td>精确匹配 (0/1)</td></tr>
+            <tr><td>卷号</td><td class="weight">6%</td><td>精确匹配 (0/1)</td></tr>
+            <tr><td>期号</td><td class="weight">4%</td><td>精确匹配 (0/1)</td></tr>
+            <tr><td>首页</td><td class="weight">4%</td><td>精确匹配 (0/1)</td></tr>
+            <tr><td>末页</td><td class="weight">4%</td><td>精确匹配 (0/1)</td></tr>
+          </tbody>
+        </table>
+
+        <h4 style="margin: 20px 0 12px 0; color: var(--text);">综合评分公式</h4>
+        <div class="formula-box">
+          <code>综合分</code> = max(OA, CR) × <code>0.6</code> + min(OA, CR) × <code>0.4</code>
+          <div style="margin-top: 8px; font-size: 11px; color: var(--text-muted);">OA = OpenAlex 得分，CR = Crossref 得分</div>
+        </div>
+
+        <h4 style="margin: 20px 0 12px 0; color: var(--text);">可信度等级</h4>
+        <table class="score-table verdict-table">
+          <thead>
+            <tr>
+              <th>等级</th>
+              <th>分数范围</th>
+              <th>说明</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td class="high">高可信</td><td>≥ 0.78</td><td>强匹配，引用基本可信</td></tr>
+            <tr><td class="medium">中可信</td><td>0.55 - 0.78</td><td>部分匹配，建议核对</td></tr>
+            <tr><td class="low">低可信</td><td>&lt; 0.55</td><td>匹配度低，可能伪造</td></tr>
+          </tbody>
+        </table>
+
+        <h4 style="margin: 20px 0 12px 0; color: var(--text);">特殊处理</h4>
+        <ul style="margin: 0; padding-left: 20px; color: var(--text-muted); font-size: 14px; line-height: 1.8;">
+          <li><strong>期刊缩写</strong>：支持 "Opt. Express" 匹配 "Optics Express"</li>
+          <li><strong>作者缩写</strong>：支持 "G. Lazarev" 匹配 "Gleb Lazarev"</li>
+          <li><strong>DOI 优先</strong>：如提供 DOI，将精确查询而非模糊搜索</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
 <script>
 /** ---------- 工具函数 ---------- */
 function norm(s) {
@@ -730,13 +1253,167 @@ function jaccard(a, b) {
   return inter / union;
 }
 
-function pickBest(items, scoreFn) {
-  let best = null, bestScore = -1;
-  for (const it of items) {
-    const sc = scoreFn(it);
-    if (sc > bestScore) { best = it; bestScore = sc; }
+// 编辑距离（Levenshtein Distance）
+function levenshtein(s1, s2) {
+  const m = s1.length, n = s2.length;
+  if (m === 0) return n;
+  if (n === 0) return m;
+
+  const dp = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+  for (let i = 0; i <= m; i++) dp[i][0] = i;
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      const cost = s1[i - 1] === s2[j - 1] ? 0 : 1;
+      dp[i][j] = Math.min(
+        dp[i - 1][j] + 1,      // 删除
+        dp[i][j - 1] + 1,      // 插入
+        dp[i - 1][j - 1] + cost // 替换
+      );
+    }
   }
-  return { best, bestScore };
+  return dp[m][n];
+}
+
+// 归一化编辑距离相似度（0-1，1为完全相同）
+function editSimilarity(a, b) {
+  if (!a || !b) return 0;
+  const s1 = norm(a), s2 = norm(b);
+  if (s1 === s2) return 1;
+  if (s1.length === 0 || s2.length === 0) return 0;
+  const dist = levenshtein(s1, s2);
+  const maxLen = Math.max(s1.length, s2.length);
+  return 1 - dist / maxLen;
+}
+
+// 期刊名相似度（结合多种策略，加权组合）
+function journalSimilarity(input, api) {
+  if (!input || !api) return 0;
+
+  // 预处理：移除点号、统一小写、去除多余空格
+  const cleanInput = input.toLowerCase().replace(/\./g, '').replace(/\s+/g, ' ').trim();
+  const cleanApi = api.toLowerCase().replace(/\./g, '').replace(/\s+/g, ' ').trim();
+
+  // 完全匹配
+  if (cleanInput === cleanApi) return 1;
+
+  const inputWords = cleanInput.split(' ').filter(Boolean);
+  const apiWords = cleanApi.split(' ').filter(Boolean);
+
+  // 前缀匹配（更严格：要求前缀长度至少3个字符，且匹配比例高）
+  let prefixMatches = 0;
+  let totalChecked = 0;
+  for (const iw of inputWords) {
+    if (iw.length < 2) continue; // 跳过太短的词
+    totalChecked++;
+    for (const aw of apiWords) {
+      // 要求前缀长度至少为较短词的60%
+      const minPrefixLen = Math.max(3, Math.floor(Math.min(iw.length, aw.length) * 0.6));
+      if (aw.startsWith(iw) || iw.startsWith(aw)) {
+        const commonLen = Math.min(iw.length, aw.length);
+        if (commonLen >= minPrefixLen) {
+          prefixMatches++;
+          break;
+        }
+      }
+    }
+  }
+  // 要求至少80%的词匹配成功
+  const prefixScore = totalChecked > 0 && (prefixMatches / totalChecked) >= 0.8
+    ? prefixMatches / Math.max(inputWords.length, apiWords.length)
+    : 0;
+
+  // 编辑距离相似度
+  const editScore = editSimilarity(cleanInput, cleanApi);
+
+  // Jaccard 相似度
+  const jaccardScore = jaccard(input, api);
+
+  // 加权组合：编辑距离权重最高，前缀匹配次之，Jaccard 作为补充
+  // 如果前缀匹配成功率高，给予额外加成
+  const weightedScore = editScore * 0.5 + prefixScore * 0.3 + jaccardScore * 0.2;
+
+  // 如果某个策略得分特别高（>0.9），可以适当提升总分
+  const maxScore = Math.max(prefixScore, editScore, jaccardScore);
+  if (maxScore > 0.9) {
+    return Math.min(1, weightedScore * 0.7 + maxScore * 0.3);
+  }
+
+  return weightedScore;
+}
+
+// 作者相似度（处理缩写情况，加权组合）
+function authorSimilarity(inputAuthors, apiAuthors) {
+  if (!inputAuthors?.length || !apiAuthors) return 0;
+
+  const inputStr = Array.isArray(inputAuthors) ? inputAuthors.join(' ') : inputAuthors;
+  const apiStr = apiAuthors;
+
+  // 提取姓氏（通常是最后一个词或逗号前的词）
+  const extractLastNames = (str) => {
+    // 分割作者，处理 "and" 和逗号
+    const authors = str.split(/,\s*(?:and\s+)?|\s+and\s+/i).filter(Boolean);
+    return authors.map(a => {
+      const parts = a.trim().split(/\s+/);
+      // 如果是 "Lastname, Firstname" 格式
+      if (a.includes(',')) {
+        return parts[0].replace(',', '').toLowerCase();
+      }
+      // 否则取最后一个词作为姓氏
+      return parts[parts.length - 1].toLowerCase();
+    }).filter(n => n.length > 1);
+  };
+
+  const inputLastNames = extractLastNames(inputStr);
+  const apiLastNames = extractLastNames(apiStr);
+
+  // 姓氏匹配
+  let lastNameMatches = 0;
+  let partialMatches = 0;
+  for (const iln of inputLastNames) {
+    for (const aln of apiLastNames) {
+      // 完全匹配
+      if (iln === aln) {
+        lastNameMatches++;
+        break;
+      }
+      // 前缀匹配或高编辑相似度（部分匹配，给予较低分数）
+      if ((iln.length >= 3 && aln.startsWith(iln)) ||
+          (aln.length >= 3 && iln.startsWith(aln)) ||
+          editSimilarity(iln, aln) > 0.8) {
+        partialMatches++;
+        break;
+      }
+    }
+  }
+
+  const totalAuthors = Math.max(inputLastNames.length, apiLastNames.length);
+  // 完全匹配得满分，部分匹配得 0.7 分
+  const lastNameScore = totalAuthors > 0
+    ? (lastNameMatches + partialMatches * 0.7) / totalAuthors
+    : 0;
+
+  // 原始 Jaccard 作为补充
+  const jaccardScore = jaccard(inputStr, apiStr);
+
+  // 加权组合：姓氏匹配权重高，Jaccard 作为补充
+  return lastNameScore * 0.7 + jaccardScore * 0.3;
+}
+
+function pickBest(items, scoreFn) {
+  let best = null, bestScore = -1, bestDetails = null;
+  for (const it of items) {
+    const result = scoreFn(it);
+    const sc = typeof result === 'object' ? result.total : result;
+    const details = typeof result === 'object' ? result.details : null;
+    if (sc > bestScore) {
+      best = it;
+      bestScore = sc;
+      bestDetails = details;
+    }
+  }
+  return { best, bestScore, bestDetails };
 }
 
 function esc(s) {
@@ -949,56 +1626,220 @@ function downloadFile(content, filename) {
 function parseCitation(raw) {
   const s = raw.trim();
 
+  // 1. 提取年份
   const yearMatch = s.match(/\b(19|20)\d{2}\b/);
   const year = yearMatch ? parseInt(yearMatch[0], 10) : null;
 
+  // 2. 提取 DOI
   const doiMatch = s.match(/\b10\.\d{4,9}\/[-._;()/:A-Z0-9]+\b/i);
   const doi = doiMatch ? doiMatch[0] : null;
 
+  // 3. 检测引用格式类型
+  const hasChineseMarker = /\[(J|M|C|D|N|R|S|P|DB|CP|EB)\]/.test(s);
+  // 支持直引号 " 和弯引号 "" 以及中文引号「」
+  const hasQuotedTitle = /"[^"]+"|"[^"]+"|「[^」]+」/.test(s);
+
   let title = null;
-  const jIdx = s.indexOf("[J]");
-  const mIdx = s.indexOf("[M]");
-  const typeIdx = jIdx !== -1 ? jIdx : mIdx;
-
-  if (typeIdx !== -1) {
-    const beforeType = s.slice(0, typeIdx);
-    const firstDot = beforeType.indexOf(". ");
-    if (firstDot !== -1) title = beforeType.slice(firstDot + 2).trim();
-  }
-  if (!title) {
-    const parts = s.split(".");
-    if (parts.length >= 3) title = parts[1].trim();
-  }
-
   let journal = null;
-  if (typeIdx !== -1) {
-    const after = s.slice(typeIdx + 3);
-    const dot = after.indexOf(".");
-    const chunk = dot !== -1 ? after.slice(dot + 1) : after;
-    journal = chunk.split(",")[0].trim();
-    if (!journal) journal = null;
-  }
-
-  let volume = null, issue = null;
-  const vi = s.match(/,\s*\d{4}\s*,\s*([0-9A-Za-z]+)\s*\(\s*([0-9A-Za-z]+)\s*\)/);
-  if (vi) {
-    volume = vi[1]; issue = vi[2];
-  } else {
-    const vOnly = s.match(/,\s*\d{4}\s*,\s*([0-9A-Za-z]+)\b/);
-    if (vOnly) volume = vOnly[1];
-  }
-
-  let firstPage = null, lastPage = null;
-  const pp = s.match(/:\s*(\d+)\s*[-–—]\s*(\d+)\b/);
-  if (pp) { firstPage = pp[1]; lastPage = pp[2]; }
-
   let authors = [];
-  const firstDot = s.indexOf(".");
-  if (firstDot !== -1) {
-    const aPart = s.slice(0, firstDot);
-    authors = aPart.split(",").map(x => x.trim()).filter(Boolean).map(one => {
-      return one.split(/\s+/)[0];
-    });
+  let volume = null, issue = null;
+  let firstPage = null, lastPage = null;
+
+  if (hasChineseMarker) {
+    // ===== 中文格式解析 =====
+    const typeMatch = s.match(/\[(J|M|C|D|N|R|S|P|DB|CP|EB)\]/);
+    const typeIdx = typeMatch ? s.indexOf(typeMatch[0]) : -1;
+
+    if (typeIdx !== -1) {
+      const beforeType = s.slice(0, typeIdx);
+      const firstDot = beforeType.indexOf(". ");
+      if (firstDot !== -1) {
+        title = beforeType.slice(firstDot + 2).trim();
+      }
+
+      // 期刊：标记后的内容
+      const after = s.slice(typeIdx + typeMatch[0].length);
+      const dot = after.indexOf(".");
+      const chunk = dot !== -1 ? after.slice(dot + 1) : after;
+      journal = chunk.split(",")[0].trim() || null;
+    }
+
+    // 卷期：, 年份, 卷(期)
+    const vi = s.match(/,\s*\d{4}\s*,\s*([0-9A-Za-z]+)\s*\(\s*([0-9A-Za-z]+)\s*\)/);
+    if (vi) {
+      volume = vi[1]; issue = vi[2];
+    } else {
+      const vOnly = s.match(/,\s*\d{4}\s*,\s*([0-9A-Za-z]+)\b/);
+      if (vOnly) volume = vOnly[1];
+    }
+
+    // 页码：: 首页-末页
+    const pp = s.match(/:\s*(\d+)\s*[-–—]\s*(\d+)\b/);
+    if (pp) { firstPage = pp[1]; lastPage = pp[2]; }
+
+    // 作者：第一个 . 前
+    const firstDot = s.indexOf(".");
+    if (firstDot !== -1) {
+      const aPart = s.slice(0, firstDot);
+      authors = aPart.split(",").map(x => x.trim()).filter(Boolean).map(one => {
+        return one.split(/\s+/)[0];
+      });
+    }
+
+  } else if (hasQuotedTitle) {
+    // ===== 英文格式解析（引号包裹标题）=====
+    // 支持直引号 "..." 和弯引号 "..." 以及中文引号「...」
+
+    let titleStart = -1, titleEnd = -1;
+    let openQuote = '', closeQuote = '';
+
+    // 检测引号类型并找到标题边界
+    const straightQuoteStart = s.indexOf('"');
+    const curlyQuoteStart = s.indexOf('"');
+    const cnQuoteStart = s.indexOf('「');
+
+    if (curlyQuoteStart !== -1 && (straightQuoteStart === -1 || curlyQuoteStart < straightQuoteStart)) {
+      // 弯引号 "..."
+      openQuote = '"'; closeQuote = '"';
+      titleStart = curlyQuoteStart;
+      titleEnd = s.indexOf('"', titleStart + 1);
+    } else if (cnQuoteStart !== -1 && (straightQuoteStart === -1 || cnQuoteStart < straightQuoteStart)) {
+      // 中文引号「...」
+      openQuote = '「'; closeQuote = '」';
+      titleStart = cnQuoteStart;
+      titleEnd = s.indexOf('」', titleStart + 1);
+    } else if (straightQuoteStart !== -1) {
+      // 直引号 "..."
+      openQuote = '"'; closeQuote = '"';
+      titleStart = straightQuoteStart;
+      titleEnd = s.indexOf('"', titleStart + 1);
+    }
+
+    if (titleStart !== -1 && titleEnd !== -1) {
+      // 提取标题
+      title = s.slice(titleStart + 1, titleEnd).trim();
+      // 移除标题末尾的逗号或句号
+      title = title.replace(/[,，.。]$/, "").trim();
+
+      // 提取作者（引号前的部分）
+      let authorPart = s.slice(0, titleStart).trim();
+      authorPart = authorPart.replace(/,\s*$/, "");
+      authors = authorPart
+        .split(/,\s*(?:and\s+)?|\s+and\s+/i)
+        .map(a => a.trim())
+        .filter(Boolean);
+
+      // 提取期刊信息（引号后的部分）
+      let afterTitle = s.slice(titleEnd + 1).trim();
+      // 移除开头的逗号或句号
+      afterTitle = afterTitle.replace(/^[,，.。]\s*/, "").trim();
+
+      if (afterTitle) {
+        // 尝试匹配：期刊 卷, 页码 (年份) 或 期刊 卷(期), 页码 (年份)
+        // 例如：Opt. Express 27, 16206–16249 (2019)
+        const patternA = afterTitle.match(/^(.+?)\s+(\d+)\s*(?:\((\d+)\))?\s*,\s*(\d+)\s*[-–—]\s*(\d+)\s*\(\d{4}\)/);
+        if (patternA) {
+          journal = patternA[1].trim();
+          volume = patternA[2];
+          issue = patternA[3] || null;
+          firstPage = patternA[4];
+          lastPage = patternA[5];
+        } else {
+          // 尝试匹配：期刊, 卷(期), 页码 (年份)
+          // 例如：Nature, 580(7802), 201-205 (2020)
+          const patternB = afterTitle.match(/^(.+?),\s*(\d+)\s*\((\d+)\)\s*,\s*(\d+)\s*[-–—]\s*(\d+)/);
+          if (patternB) {
+            journal = patternB[1].trim();
+            volume = patternB[2];
+            issue = patternB[3];
+            firstPage = patternB[4];
+            lastPage = patternB[5];
+          } else {
+            // 尝试匹配：期刊 卷, 页码
+            const patternC = afterTitle.match(/^(.+?)\s+(\d+)\s*,\s*(\d+)\s*[-–—]?\s*(\d+)?/);
+            if (patternC) {
+              journal = patternC[1].trim();
+              volume = patternC[2];
+              firstPage = patternC[3];
+              lastPage = patternC[4] || null;
+            } else {
+              // 尝试提取期刊名（逗号或数字前的部分）
+              const journalMatch = afterTitle.match(/^([A-Za-z][A-Za-z.\s&]+?)(?:\s+\d|,|\()/);
+              if (journalMatch) {
+                journal = journalMatch[1].trim();
+              }
+            }
+          }
+        }
+
+        // 如果还没提取到页码，尝试通用页码匹配
+        if (!firstPage) {
+          const pageMatch = afterTitle.match(/(\d+)\s*[-–—]\s*(\d+)/);
+          if (pageMatch) {
+            firstPage = pageMatch[1];
+            lastPage = pageMatch[2];
+          }
+        }
+
+        // 如果还没提取到卷号，尝试通用卷号匹配
+        if (!volume) {
+          const volMatch = afterTitle.match(/\b(\d+)\s*[,(:]/);
+          if (volMatch) {
+            volume = volMatch[1];
+          }
+        }
+      }
+    }
+
+  } else {
+    // ===== 通用格式解析（无明确标记）=====
+    // 尝试按句号分割
+    const parts = s.split(/\.\s+/);
+
+    if (parts.length >= 2) {
+      // 第一部分通常是作者
+      authors = parts[0].split(/,\s*(?:and\s+)?|\s+and\s+/i)
+        .map(a => a.trim())
+        .filter(Boolean);
+
+      // 第二部分可能是标题
+      if (parts.length >= 2) {
+        title = parts[1].trim();
+      }
+
+      // 第三部分可能是期刊信息
+      if (parts.length >= 3) {
+        const journalPart = parts[2];
+        // 提取期刊名（逗号或数字前）
+        const jMatch = journalPart.match(/^([^,\d]+)/);
+        if (jMatch) {
+          journal = jMatch[1].trim();
+        }
+      }
+    }
+
+    // 卷期页码通用匹配
+    const vi = s.match(/(\d+)\s*\(\s*(\d+)\s*\)/);
+    if (vi) {
+      volume = vi[1];
+      issue = vi[2];
+    } else {
+      // 尝试匹配独立卷号
+      const volMatch = s.match(/[,\s](\d+)[,:\s]/);
+      if (volMatch) volume = volMatch[1];
+    }
+
+    // 页码
+    const pp = s.match(/(\d+)\s*[-–—]\s*(\d+)/);
+    if (pp) {
+      firstPage = pp[1];
+      lastPage = pp[2];
+    }
+  }
+
+  // 清理标题（移除多余空格）
+  if (title) {
+    title = title.replace(/\s+/g, " ").trim();
   }
 
   return { raw: s, year, doi, title, journal, volume, issue, firstPage, lastPage, authors };
@@ -1056,16 +1897,31 @@ async function queryCrossref(p, mailto) {
 function scoreOpenAlexWork(p, w) {
   const t = jaccard(p.title, w.title || "");
   const y = (p.year && w.publication_year === p.year) ? 1 : 0;
-  const j = jaccard(p.journal, (w.primary_location?.source?.display_name) || "");
+  const j = journalSimilarity(p.journal, (w.primary_location?.source?.display_name) || "");
   const v = (p.volume && w.biblio?.volume && String(w.biblio.volume) === String(p.volume)) ? 1 : 0;
   const i = (p.issue && w.biblio?.issue && String(w.biblio.issue) === String(p.issue)) ? 1 : 0;
   const fp = (p.firstPage && w.biblio?.first_page && String(w.biblio.first_page) === String(p.firstPage)) ? 1 : 0;
   const lp = (p.lastPage && w.biblio?.last_page && String(w.biblio.last_page) === String(p.lastPage)) ? 1 : 0;
 
   const workAuthors = (w.authorships || []).map(a => a.author?.display_name || "").join(" ");
-  const a = p.authors?.length ? jaccard(p.authors.join(" "), workAuthors) : 0;
+  const a = authorSimilarity(p.authors, workAuthors);
 
-  return 0.45 * t + 0.15 * a + 0.12 * j + 0.10 * y + 0.06 * v + 0.04 * i + 0.04 * fp + 0.04 * lp;
+  const total = 0.45 * t + 0.15 * a + 0.12 * j + 0.10 * y + 0.06 * v + 0.04 * i + 0.04 * fp + 0.04 * lp;
+
+  // 返回详细评分信息
+  return {
+    total,
+    details: {
+      title: { score: t, weight: 0.45, weighted: 0.45 * t },
+      author: { score: a, weight: 0.15, weighted: 0.15 * a },
+      journal: { score: j, weight: 0.12, weighted: 0.12 * j },
+      year: { score: y, weight: 0.10, weighted: 0.10 * y },
+      volume: { score: v, weight: 0.06, weighted: 0.06 * v },
+      issue: { score: i, weight: 0.04, weighted: 0.04 * i },
+      firstPage: { score: fp, weight: 0.04, weighted: 0.04 * fp },
+      lastPage: { score: lp, weight: 0.04, weighted: 0.04 * lp }
+    }
+  };
 }
 
 function scoreCrossrefItem(p, it) {
@@ -1074,11 +1930,15 @@ function scoreCrossrefItem(p, it) {
   const issuedYear = it.issued?.["date-parts"]?.[0]?.[0];
 
   const t = jaccard(p.title, title);
-  const j = jaccard(p.journal, container);
+  const j = journalSimilarity(p.journal, container);
   const y = (p.year && issuedYear === p.year) ? 1 : 0;
 
-  const crAuthors = (it.author || []).map(a => a.family || "").join(" ");
-  const a = p.authors?.length ? jaccard(p.authors.join(" "), crAuthors) : 0;
+  const crAuthors = (it.author || []).map(a => {
+    const family = a.family || '';
+    const given = a.given || '';
+    return family ? (given ? `${given} ${family}` : family) : '';
+  }).filter(Boolean).join(" ");
+  const a = authorSimilarity(p.authors, crAuthors);
 
   const v = (p.volume && it.volume && String(it.volume) === String(p.volume)) ? 1 : 0;
   const i = (p.issue && it.issue && String(it.issue) === String(p.issue)) ? 1 : 0;
@@ -1086,7 +1946,22 @@ function scoreCrossrefItem(p, it) {
   const fp = (p.firstPage && page.includes(p.firstPage)) ? 1 : 0;
   const lp = (p.lastPage && page.includes(p.lastPage)) ? 1 : 0;
 
-  return 0.45 * t + 0.15 * a + 0.12 * j + 0.10 * y + 0.06 * v + 0.04 * i + 0.04 * fp + 0.04 * lp;
+  const total = 0.45 * t + 0.15 * a + 0.12 * j + 0.10 * y + 0.06 * v + 0.04 * i + 0.04 * fp + 0.04 * lp;
+
+  // 返回详细评分信息
+  return {
+    total,
+    details: {
+      title: { score: t, weight: 0.45, weighted: 0.45 * t },
+      author: { score: a, weight: 0.15, weighted: 0.15 * a },
+      journal: { score: j, weight: 0.12, weighted: 0.12 * j },
+      year: { score: y, weight: 0.10, weighted: 0.10 * y },
+      volume: { score: v, weight: 0.06, weighted: 0.06 * v },
+      issue: { score: i, weight: 0.04, weighted: 0.04 * i },
+      firstPage: { score: fp, weight: 0.04, weighted: 0.04 * fp },
+      lastPage: { score: lp, weight: 0.04, weighted: 0.04 * lp }
+    }
+  };
 }
 
 function getVerdict(score) {
@@ -1114,6 +1989,12 @@ async function verifySingle(raw, mailto) {
   const crScore = crBest?.best ? crBest.bestScore : 0;
   const combined = Math.max(oaScore, crScore) * 0.6 + Math.min(oaScore, crScore) * 0.4;
 
+  // 生成综合评分详情
+  const combinedDetails = {
+    openAlex: { score: oaScore, weight: oaScore >= crScore ? 0.6 : 0.4, weighted: oaScore >= crScore ? oaScore * 0.6 : oaScore * 0.4 },
+    crossref: { score: crScore, weight: crScore > oaScore ? 0.6 : 0.4, weighted: crScore > oaScore ? crScore * 0.6 : crScore * 0.4 }
+  };
+
   return {
     raw,
     parsed: p,
@@ -1122,22 +2003,118 @@ async function verifySingle(raw, mailto) {
     oaScore,
     crScore,
     combined,
+    combinedDetails,
     verdict: getVerdict(combined)
   };
 }
 
 /** ---------- UI 渲染 ---------- */
+// 生成评分详情 tooltip HTML
+function renderScoreTooltip(details) {
+  if (!details) return '';
+
+  const labels = {
+    title: '标题',
+    author: '作者',
+    journal: '期刊',
+    year: '年份',
+    volume: '卷号',
+    issue: '期号',
+    firstPage: '首页',
+    lastPage: '末页'
+  };
+
+  const getScoreClass = (score) => {
+    if (score >= 0.8) return 'good';
+    if (score >= 0.5) return 'medium';
+    return 'bad';
+  };
+
+  let rows = '';
+  let total = 0;
+  for (const [key, val] of Object.entries(details)) {
+    total += val.weighted;
+    rows += `
+      <div class="score-tooltip-row">
+        <span class="score-tooltip-label">${labels[key]} (${(val.weight * 100).toFixed(0)}%)</span>
+        <span class="score-tooltip-value ${getScoreClass(val.score)}">${val.score.toFixed(3)} → ${val.weighted.toFixed(3)}</span>
+      </div>
+    `;
+  }
+  rows += `
+    <div class="score-tooltip-row">
+      <span class="score-tooltip-label">总分</span>
+      <span class="score-tooltip-value ${getScoreClass(total)}">${total.toFixed(3)}</span>
+    </div>
+  `;
+
+  return `<div class="score-tooltip">${rows}</div>`;
+}
+
+// 生成综合评分 tooltip HTML
+function renderCombinedTooltip(combinedDetails, oaDetails, crDetails) {
+  if (!combinedDetails) return '';
+
+  const getScoreClass = (score) => {
+    if (score >= 0.78) return 'good';
+    if (score >= 0.55) return 'medium';
+    return 'bad';
+  };
+
+  const oaScore = combinedDetails.openAlex.score;
+  const crScore = combinedDetails.crossref.score;
+  const combined = combinedDetails.openAlex.weighted + combinedDetails.crossref.weighted;
+
+  // 判断哪个是主要来源
+  const oaIsMain = oaScore >= crScore;
+
+  let rows = `
+    <div class="score-tooltip-row" style="padding-bottom: 8px; margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.15);">
+      <span class="score-tooltip-label" style="font-weight: 600; color: rgba(255,255,255,0.9);">
+        <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: linear-gradient(135deg, #10b981, #34d399); margin-right: 6px; box-shadow: 0 0 6px rgba(16, 185, 129, 0.4);"></span>
+        综合评分公式
+      </span>
+      <span class="score-tooltip-value" style="background: transparent; font-size: 10px;">max×0.6 + min×0.4</span>
+    </div>
+    <div class="score-tooltip-row">
+      <span class="score-tooltip-label">
+        <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: linear-gradient(135deg, #4f46e5, #818cf8); margin-right: 6px;"></span>
+        OpenAlex ${oaIsMain ? '(主)' : '(次)'}
+      </span>
+      <span class="score-tooltip-value ${getScoreClass(oaScore)}">${oaScore.toFixed(3)} × ${oaIsMain ? '0.6' : '0.4'} = ${combinedDetails.openAlex.weighted.toFixed(3)}</span>
+    </div>
+    <div class="score-tooltip-row">
+      <span class="score-tooltip-label">
+        <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: linear-gradient(135deg, #f59e0b, #fbbf24); margin-right: 6px;"></span>
+        Crossref ${!oaIsMain ? '(主)' : '(次)'}
+      </span>
+      <span class="score-tooltip-value ${getScoreClass(crScore)}">${crScore.toFixed(3)} × ${!oaIsMain ? '0.6' : '0.4'} = ${combinedDetails.crossref.weighted.toFixed(3)}</span>
+    </div>
+    <div class="score-tooltip-row">
+      <span class="score-tooltip-label">综合得分</span>
+      <span class="score-tooltip-value ${getScoreClass(combined)}">${combined.toFixed(3)}</span>
+    </div>
+  `;
+
+  return `<div class="score-tooltip" style="min-width: 280px;">${rows}</div>`;
+}
+
 function renderResult(result, index) {
-  const { raw, parsed, oaBest, crBest, oaScore, crScore, combined, verdict } = result;
+  const { raw, parsed, oaBest, crBest, oaScore, crScore, combined, combinedDetails, verdict } = result;
   const oa = oaBest?.best;
   const cr = crBest?.best;
+  const oaDetails = oaBest?.bestDetails;
+  const crDetails = crBest?.bestDetails;
 
   return `
     <div class="result-item" data-index="${index}">
       <div class="result-header" onclick="toggleResult(${index})">
         <div class="result-index">${index + 1}</div>
         <div class="result-title">${esc(parsed.title || raw.slice(0, 80))}</div>
-        <div class="result-score ${verdict.level}">${verdict.text} ${combined.toFixed(2)}</div>
+        <div class="score-tooltip-wrapper result-score-wrapper" onclick="event.stopPropagation()">
+          <div class="result-score ${verdict.level}">${verdict.text} ${combined.toFixed(2)}</div>
+          ${renderCombinedTooltip(combinedDetails, oaDetails, crDetails)}
+        </div>
         <div class="result-toggle">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="6 9 12 15 18 9"></polyline>
@@ -1165,48 +2142,62 @@ function renderResult(result, index) {
           </div>
         </div>
 
-        <div class="detail-section">
-          <h4>
-            <span class="source-badge openalex">OpenAlex</span>
-            <span class="score-inline">匹配分 ${oaScore.toFixed(3)}</span>
-          </h4>
-          ${oa ? `
-            <div class="detail-grid">
-              <div class="detail-label">标题</div>
-              <div class="detail-value">${esc(oa.title || "-")}</div>
-              <div class="detail-label">来源</div>
-              <div class="detail-value">${esc(oa.primary_location?.source?.display_name || "-")}</div>
-              <div class="detail-label">年份</div>
-              <div class="detail-value">${esc(oa.publication_year || "-")}</div>
-              <div class="detail-label">卷期页</div>
-              <div class="detail-value">${esc(oa.biblio?.volume || "-")}(${esc(oa.biblio?.issue || "-")}):${esc(oa.biblio?.first_page || "-")}-${esc(oa.biblio?.last_page || "-")}</div>
-              <div class="detail-label">DOI</div>
-              <div class="detail-value">${oa.doi ? `<a href="https://doi.org/${esc(oa.doi.replace('https://doi.org/',''))}" target="_blank">${esc(oa.doi)}</a>` : "-"}</div>
-              <div class="detail-label">OpenAlex</div>
-              <div class="detail-value"><a href="${esc(oa.id)}" target="_blank">查看详情</a></div>
-            </div>
-          ` : `<div style="color:var(--text-muted);font-size:13px">未找到匹配结果</div>`}
-        </div>
+        <div class="sources-grid">
+          <div class="source-card">
+            <h4>
+              <div class="score-tooltip-wrapper">
+                <span class="source-badge openalex">OpenAlex</span>
+                <span class="score-inline">匹配分 ${oaScore.toFixed(3)}</span>
+                ${renderScoreTooltip(oaDetails)}
+              </div>
+              ${oa ? `<a href="${esc(oa.id)}" target="_blank" class="link-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                  <polyline points="15 3 21 3 21 9"></polyline>
+                  <line x1="10" y1="14" x2="21" y2="3"></line>
+                </svg>
+                详情
+              </a>` : ''}
+            </h4>
+            ${oa ? `
+              <div class="detail-grid">
+                <div class="detail-label">标题</div>
+                <div class="detail-value">${esc(oa.title || "-")}</div>
+                <div class="detail-label">来源</div>
+                <div class="detail-value">${esc(oa.primary_location?.source?.display_name || "-")}</div>
+                <div class="detail-label">年份</div>
+                <div class="detail-value">${esc(oa.publication_year || "-")}</div>
+                <div class="detail-label">卷期页</div>
+                <div class="detail-value">${esc(oa.biblio?.volume || "-")}(${esc(oa.biblio?.issue || "-")}):${esc(oa.biblio?.first_page || "-")}-${esc(oa.biblio?.last_page || "-")}</div>
+                <div class="detail-label">DOI</div>
+                <div class="detail-value">${oa.doi ? `<a href="https://doi.org/${esc(oa.doi.replace('https://doi.org/',''))}" target="_blank">${esc(oa.doi)}</a>` : "-"}</div>
+              </div>
+            ` : `<div style="color:var(--text-muted);font-size:13px;padding:20px 0;text-align:center;">未找到匹配结果</div>`}
+          </div>
 
-        <div class="detail-section">
-          <h4>
-            <span class="source-badge crossref">Crossref</span>
-            <span class="score-inline">匹配分 ${crScore.toFixed(3)}</span>
-          </h4>
-          ${cr ? `
-            <div class="detail-grid">
-              <div class="detail-label">标题</div>
-              <div class="detail-value">${esc((cr.title && cr.title[0]) || "-")}</div>
-              <div class="detail-label">期刊</div>
-              <div class="detail-value">${esc((cr["container-title"] && cr["container-title"][0]) || "-")}</div>
-              <div class="detail-label">年份</div>
-              <div class="detail-value">${esc(cr.issued?.["date-parts"]?.[0]?.[0] || "-")}</div>
-              <div class="detail-label">卷期页</div>
-              <div class="detail-value">${esc(cr.volume || "-")}(${esc(cr.issue || "-")}):${esc(cr.page || "-")}</div>
-              <div class="detail-label">DOI</div>
-              <div class="detail-value">${cr.DOI ? `<a href="https://doi.org/${esc(cr.DOI)}" target="_blank">${esc(cr.DOI)}</a>` : "-"}</div>
-            </div>
-          ` : `<div style="color:var(--text-muted);font-size:13px">未找到匹配结果</div>`}
+          <div class="source-card">
+            <h4>
+              <div class="score-tooltip-wrapper">
+                <span class="source-badge crossref">Crossref</span>
+                <span class="score-inline">匹配分 ${crScore.toFixed(3)}</span>
+                ${renderScoreTooltip(crDetails)}
+              </div>
+            </h4>
+            ${cr ? `
+              <div class="detail-grid">
+                <div class="detail-label">标题</div>
+                <div class="detail-value">${esc((cr.title && cr.title[0]) || "-")}</div>
+                <div class="detail-label">期刊</div>
+                <div class="detail-value">${esc((cr["container-title"] && cr["container-title"][0]) || "-")}</div>
+                <div class="detail-label">年份</div>
+                <div class="detail-value">${esc(cr.issued?.["date-parts"]?.[0]?.[0] || "-")}</div>
+                <div class="detail-label">卷期页</div>
+                <div class="detail-value">${esc(cr.volume || "-")}(${esc(cr.issue || "-")}):${esc(cr.page || "-")}</div>
+                <div class="detail-label">DOI</div>
+                <div class="detail-value">${cr.DOI ? `<a href="https://doi.org/${esc(cr.DOI)}" target="_blank">${esc(cr.DOI)}</a>` : "-"}</div>
+              </div>
+            ` : `<div style="color:var(--text-muted);font-size:13px;padding:20px 0;text-align:center;">未找到匹配结果</div>`}
+          </div>
         </div>
 
         <div class="detail-section">
@@ -1625,6 +2616,41 @@ async function copyExtractedBib(index, button) {
 window.toggleResult = toggleResult;
 window.copyBibTeX = copyBibTeX;
 window.copyExtractedBib = copyExtractedBib;
+
+/** ---------- 弹窗和反馈 ---------- */
+// 打开打分标准弹窗
+function openScoreRulesModal() {
+  document.getElementById('scoreRulesModal').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+// 关闭打分标准弹窗
+function closeScoreRulesModal() {
+  document.getElementById('scoreRulesModal').classList.remove('show');
+  document.body.style.overflow = '';
+}
+
+// 点击遮罩关闭弹窗
+document.getElementById('scoreRulesModal').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) {
+    closeScoreRulesModal();
+  }
+});
+
+// ESC 键关闭弹窗
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeScoreRulesModal();
+  }
+});
+
+// 绑定按钮事件
+document.getElementById('showScoreRules').addEventListener('click', openScoreRulesModal);
+document.getElementById('feedback').addEventListener('click', () => {
+  window.open('https://github.com/QAbot-zh/citation-checker/issues', '_blank');
+});
+
+window.closeScoreRulesModal = closeScoreRulesModal;
 </script>
 </body>
 </html>

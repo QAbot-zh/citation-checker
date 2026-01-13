@@ -1197,7 +1197,7 @@
         通过 OpenAlex 与 Crossref
         双数据源交叉验证，智能解析引用字段并评估可信度。支持 GB/T
         7714、APA、MLA、IEEE、Chicago、Vancouver、Harvard、Nature、Science
-        等多种格式，自动识别并容错解析。
+        等多种格式，自动识别并容错解析。<span style="color: var(--danger);">低可信度表示未找到匹配文献，可能是文献不存在或未被数据源收录，特别是中文文献。</span>
       </p>
     </div>
 
@@ -1798,12 +1798,56 @@
       function authorSimilarity(inputAuthors, apiAuthors) {
         if (!inputAuthors?.length || !apiAuthors) return 0;
 
+        // 检测是否是中文名字（全是中文字符）
+        const isChinese = (str) => /^[\u4e00-\u9fa5]+$/.test(str.trim());
+        // 检测是否包含中文字符
+        const hasChinese = (str) => /[\u4e00-\u9fa5]/.test(str);
+
         // 从单个作者字符串提取姓氏和名字首字母
         const extractSingleAuthor = (authorStr) => {
           if (!authorStr || typeof authorStr !== 'string') return null;
 
           const a = authorStr.trim();
           if (a.length < 2) return null;
+
+          // 中文名字特殊处理
+          if (isChinese(a)) {
+            // 中文名字：第一个字是姓，后面是名
+            return {
+              lastName: a[0],
+              givenName: a.slice(1),
+              fullName: a,
+              isChinese: true
+            };
+          }
+
+          // OpenAlex 中文名字格式："爽 薛"（名 姓，空格分隔）
+          // 检测是否是空格分隔的中文名字
+          const spaceParts = a.split(/\s+/);
+          if (spaceParts.length === 2 && hasChinese(a)) {
+            const [part1, part2] = spaceParts;
+            if (isChinese(part1) && isChinese(part2)) {
+              // 假设格式是 "名 姓"（OpenAlex 格式）
+              // 中文名字通常姓是单字，名是1-2字
+              // 如果第二部分是单字，很可能是姓
+              if (part2.length === 1 && part1.length >= 1) {
+                return {
+                  lastName: part2,
+                  givenName: part1,
+                  fullName: part2 + part1,
+                  isChinese: true
+                };
+              } else if (part1.length === 1 && part2.length >= 1) {
+                // 格式是 "姓 名"
+                return {
+                  lastName: part1,
+                  givenName: part2,
+                  fullName: part1 + part2,
+                  isChinese: true
+                };
+              }
+            }
+          }
 
           const parts = a.split(/\s+/);
           let lastName = "";
@@ -1848,7 +1892,7 @@
           }
 
           if (lastName.length < 2) return null;
-          return { lastName, givenInitials };
+          return { lastName, givenInitials, isChinese: false };
         };
 
         // 从字符串解析多个作者（用于兼容旧的字符串输入）
@@ -1912,17 +1956,32 @@
               // Crossref 格式：{family: "Zhang", given: "Jinglin"}
               // OpenAlex 格式：{author: {display_name: "Jinglin Zhang"}}
               if (a.family) {
-                const lastName = a.family.toLowerCase();
+                const family = a.family.trim();
+                const given = (a.given || '').trim();
+
+                // 检测是否是中文名字
+                if (isChinese(family) || isChinese(given)) {
+                  // 中文名字：family 是姓，given 是名
+                  return {
+                    lastName: family,
+                    givenName: given,
+                    fullName: family + given,
+                    isChinese: true
+                  };
+                }
+
+                // 西方名字
+                const lastName = family.toLowerCase();
                 const givenInitials = [];
-                if (a.given) {
+                if (given) {
                   // 提取 given name 的首字母
-                  const givenParts = a.given.trim().split(/\s+/);
+                  const givenParts = given.split(/\s+/);
                   for (const p of givenParts) {
                     const clean = p.replace(/\./g, "");
                     if (clean.length > 0) givenInitials.push(clean[0].toLowerCase());
                   }
                 }
-                return { lastName, givenInitials };
+                return { lastName, givenInitials, isChinese: false };
               } else if (a.author?.display_name) {
                 return extractSingleAuthor(a.author.display_name);
               } else if (a.display_name) {
@@ -1945,7 +2004,7 @@
           return jaccard(inputStr, apiStr);
         }
 
-        // 作者匹配（姓氏 + 名字首字母）
+        // 作者匹配
         let totalScore = 0;
         let matchedCount = 0;
 
@@ -1955,37 +2014,57 @@
           for (const apiAuthor of apiAuthorsInfo) {
             let score = 0;
 
-            // 姓氏匹配（权重 70%）
-            if (inputAuthor.lastName === apiAuthor.lastName) {
-              score += 0.7;
-            } else if (
-              inputAuthor.lastName.length >= 3 &&
-              (apiAuthor.lastName.startsWith(inputAuthor.lastName) ||
-                inputAuthor.lastName.startsWith(apiAuthor.lastName))
-            ) {
-              score += 0.5; // 前缀匹配
-            } else if (editSimilarity(inputAuthor.lastName, apiAuthor.lastName) > 0.8) {
-              score += 0.5; // 高编辑相似度
-            }
-
-            // 名字首字母匹配（权重 30%）
-            if (inputAuthor.givenInitials.length > 0 && apiAuthor.givenInitials.length > 0) {
-              let initialMatches = 0;
-              const minLen = Math.min(
-                inputAuthor.givenInitials.length,
-                apiAuthor.givenInitials.length
-              );
-              for (let i = 0; i < minLen; i++) {
-                if (inputAuthor.givenInitials[i] === apiAuthor.givenInitials[i]) {
-                  initialMatches++;
+            // 中文名字匹配
+            if (inputAuthor.isChinese && apiAuthor.isChinese) {
+              // 完全匹配
+              if (inputAuthor.fullName === apiAuthor.fullName) {
+                score = 1.0;
+              } else if (inputAuthor.lastName === apiAuthor.lastName) {
+                // 姓氏匹配
+                score = 0.7;
+                // 名字匹配
+                if (inputAuthor.givenName && apiAuthor.givenName) {
+                  if (inputAuthor.givenName === apiAuthor.givenName) {
+                    score += 0.3;
+                  } else if (inputAuthor.givenName.includes(apiAuthor.givenName) ||
+                             apiAuthor.givenName.includes(inputAuthor.givenName)) {
+                    score += 0.2;
+                  }
                 }
               }
-              // 首字母匹配比例
-              const initialScore = initialMatches / minLen;
-              score += 0.3 * initialScore;
-            } else if (score > 0) {
-              // 如果姓氏匹配但没有名字信息，给予部分分数
-              score += 0.15;
+            } else if (!inputAuthor.isChinese && !apiAuthor.isChinese) {
+              // 西方名字匹配（姓氏 + 名字首字母）
+              if (inputAuthor.lastName === apiAuthor.lastName) {
+                score += 0.7;
+              } else if (
+                inputAuthor.lastName.length >= 3 &&
+                (apiAuthor.lastName.startsWith(inputAuthor.lastName) ||
+                  inputAuthor.lastName.startsWith(apiAuthor.lastName))
+              ) {
+                score += 0.5; // 前缀匹配
+              } else if (editSimilarity(inputAuthor.lastName, apiAuthor.lastName) > 0.8) {
+                score += 0.5; // 高编辑相似度
+              }
+
+              // 名字首字母匹配（权重 30%）
+              if (inputAuthor.givenInitials?.length > 0 && apiAuthor.givenInitials?.length > 0) {
+                let initialMatches = 0;
+                const minLen = Math.min(
+                  inputAuthor.givenInitials.length,
+                  apiAuthor.givenInitials.length
+                );
+                for (let i = 0; i < minLen; i++) {
+                  if (inputAuthor.givenInitials[i] === apiAuthor.givenInitials[i]) {
+                    initialMatches++;
+                  }
+                }
+                // 首字母匹配比例
+                const initialScore = initialMatches / minLen;
+                score += 0.3 * initialScore;
+              } else if (score > 0) {
+                // 如果姓氏匹配但没有名字信息，给予部分分数
+                score += 0.15;
+              }
             }
 
             bestMatchScore = Math.max(bestMatchScore, score);
@@ -2016,6 +2095,9 @@
         return authorScore * 0.85 + jaccardScore * 0.15;
       }
 
+      // 提前终止阈值：找到高分匹配就停止
+      const EARLY_STOP_THRESHOLD = 0.9;
+
       function pickBest(items, scoreFn) {
         let best = null,
           bestScore = -1,
@@ -2028,6 +2110,10 @@
             best = it;
             bestScore = sc;
             bestDetails = details;
+          }
+          // 提前终止：找到高分匹配就停止
+          if (bestScore >= EARLY_STOP_THRESHOLD) {
+            break;
           }
         }
         return { best, bestScore, bestDetails };
@@ -2334,10 +2420,11 @@
         const hasChicagoStyle =
           hasQuotedTitle &&
           /,\s*no\.\s*\d+\s*\(\d{4}\)\s*:/i.test(s);
+        // APA 格式检测：支持西方名字和中文名字
+        // 西方：Author, A. A. (Year). 或 中文：作者名. (Year).
         const hasAPAStyle =
-          /^[A-Z][^()]+,\s*[A-Z]\.\s*[A-Z]?\.?\s*(?:\(|\[)?\d{4}(?:\)|\])?\./.test(
-            s
-          );
+          /^[A-Z][^()]+,\s*[A-Z]\.\s*[A-Z]?\.?\s*(?:\(|\[)?\d{4}(?:\)|\])?\./.test(s) ||
+          /^[\u4e00-\u9fa5]{2,4}\.\s*\(\d{4}\)\./.test(s);  // 中文作者名. (年份).
         const hasVancouverStyle =
           /;\s*\d{4}\s*[;:]/i.test(s) || /\.\s*\d{4}\s*;\s*\d+/.test(s) ||
           /\.\s*\d{4}\s+[A-Za-z]{3,9}\s*;\s*\d+/.test(s);  // 支持 2017 Jun;3(2) 格式
@@ -2921,23 +3008,34 @@
           lastPage = null;
 
         // APA: Author, A. A., & Author, B. B. (Year). Title. Journal, Volume(Issue), Pages. doi
+        // 中文 APA: 作者名. (年份). 标题. 期刊名, 卷(期), 页码. doi
 
         // 先移除末尾的 URL/DOI 链接
         const cleanedS = s.replace(/\s*https?:\/\/[^\s]+\s*$/i, '').trim();
 
-        // 查找年份位置
+        // 查找年份位置 (Year). 格式
         const yearMatch = cleanedS.match(/\((\d{4})\)\./);
         if (yearMatch) {
           const yearIdx = cleanedS.indexOf(yearMatch[0]);
 
           // 作者（年份前）
           const authorPart = cleanedS.slice(0, yearIdx).trim();
-          authors = parseWesternAuthors(authorPart);
+
+          // 检测是否是中文作者
+          const isChinese = /^[\u4e00-\u9fa5]/.test(authorPart);
+          if (isChinese) {
+            // 中文作者：可能是 "作者名." 或 "作者1, 作者2."
+            const cleanAuthor = authorPart.replace(/\.\s*$/, '').trim();
+            authors = cleanAuthor.split(/[,，、]\s*/).map(a => a.trim()).filter(Boolean);
+          } else {
+            authors = parseWesternAuthors(authorPart);
+          }
 
           // 年份后的内容
           const afterYear = cleanedS.slice(yearIdx + yearMatch[0].length).trim();
 
           // 按句号分割（排除 URL）
+          // 注意：中文标题可能包含英文句号，需要更智能的分割
           const parts = afterYear.split(/\.\s+/).filter(p => !p.startsWith('http'));
 
           if (parts.length >= 1) {
@@ -2949,8 +3047,9 @@
             // 第二部分是期刊信息
             const journalPart = parts[1];
             // Journal, Volume(Issue), Pages
+            // 支持中文期刊名和页码格式
             const jMatch = journalPart.match(
-              /^([^,]+),\s*(\d+)(?:\((\d+)\))?,?\s*(\d+)?\s*[-–—]?\s*(\d+)?/
+              /^([^,，]+)[,，]\s*(\d+)(?:\((\d+)\))?[,，]?\s*(\d+)?\s*[-–—]?\s*(\d+)?/
             );
             if (jMatch) {
               journal = jMatch[1].trim();
@@ -2960,7 +3059,20 @@
               lastPage = jMatch[5] || null;
             } else {
               // 只有期刊名
-              journal = journalPart.split(",")[0].trim();
+              journal = journalPart.split(/[,，]/)[0].trim();
+            }
+          } else if (parts.length === 1) {
+            // 标题和期刊在同一部分，尝试分割
+            // 格式可能是：标题. 期刊名, 卷(期), 页码
+            const combinedMatch = parts[0].match(
+              /^(.+?)[.。]\s*([^,，.。]+)[,，]\s*(\d+)\s*\(\s*(\d+)\s*\)[,，]?\s*(\d+)?/
+            );
+            if (combinedMatch) {
+              title = combinedMatch[1].trim();
+              journal = combinedMatch[2].trim();
+              volume = combinedMatch[3];
+              issue = combinedMatch[4];
+              firstPage = combinedMatch[5] || null;
             }
           }
         } else {
@@ -3590,15 +3702,22 @@
       /** ---------- API 查询 ---------- */
       async function queryOpenAlex(p, mailto) {
         let url = new URL("https://api.openalex.org/works");
-        url.searchParams.set("per-page", "25");
+        url.searchParams.set("per-page", "10");  // 减少返回数量
         if (mailto) url.searchParams.set("mailto", mailto);
+
+        // 检测是否是 arXiv 相关引用
+        const isArxiv = /arXiv/i.test(p.raw) || /\d{4}\.\d{4,5}/.test(p.raw);
 
         if (p.doi) {
           url.searchParams.set("filter", `doi:${p.doi.toLowerCase()}`);
         } else {
           url.searchParams.set("search", p.title || p.raw);
-          if (p.year)
+          if (isArxiv) {
+            // arXiv 引用：使用来源过滤器，不使用年份过滤（预印本可能更新）
+            url.searchParams.set("filter", "indexed_in:arxiv");
+          } else if (p.year) {
             url.searchParams.set("filter", `publication_year:${p.year}`);
+          }
         }
 
         const r = await fetch(url.toString());
@@ -3625,7 +3744,7 @@
 
         // 原来的：模糊检索
         let url = new URL("https://api.crossref.org/works");
-        url.searchParams.set("rows", "50");
+        url.searchParams.set("rows", "15");  // 减少返回数量
         if (mailto) url.searchParams.set("mailto", mailto);
 
         if (p.title) url.searchParams.set("query.bibliographic", p.title);
@@ -3645,6 +3764,26 @@
       }
 
       /** ---------- 打分 ---------- */
+      // arXiv 专用评分（移除期刊、卷期页码）
+      function scoreOpenAlexWorkArxiv(p, w) {
+        const t = jaccard(p.title, w.title || "");
+        const y = p.year && w.publication_year === p.year ? 1 : 0;
+        const workAuthors = w.authorships || [];
+        const a = authorSimilarity(p.authors, workAuthors);
+
+        // arXiv 权重：标题 60%，作者 25%，年份 15%
+        const total = 0.60 * t + 0.25 * a + 0.15 * y;
+
+        return {
+          total,
+          details: {
+            title: { score: t, weight: 0.60, weighted: 0.60 * t },
+            author: { score: a, weight: 0.25, weighted: 0.25 * a },
+            year: { score: y, weight: 0.15, weighted: 0.15 * y },
+          },
+        };
+      }
+
       function scoreOpenAlexWork(p, w) {
         const t = jaccard(p.title, w.title || "");
         const y = p.year && w.publication_year === p.year ? 1 : 0;
@@ -3702,6 +3841,29 @@
             issue: { score: i, weight: 0.04, weighted: 0.04 * i },
             firstPage: { score: fp, weight: 0.04, weighted: 0.04 * fp },
             lastPage: { score: lp, weight: 0.04, weighted: 0.04 * lp },
+          },
+        };
+      }
+
+      // arXiv 专用 Crossref 评分（移除期刊、卷期页码）
+      function scoreCrossrefItemArxiv(p, it) {
+        const title = it.title && it.title[0] ? it.title[0] : "";
+        const issuedYear = it.issued?.["date-parts"]?.[0]?.[0];
+
+        const t = jaccard(p.title, title);
+        const y = p.year && issuedYear === p.year ? 1 : 0;
+        const crAuthors = it.author || [];
+        const a = authorSimilarity(p.authors, crAuthors);
+
+        // arXiv 权重：标题 60%，作者 25%，年份 15%
+        const total = 0.60 * t + 0.25 * a + 0.15 * y;
+
+        return {
+          total,
+          details: {
+            title: { score: t, weight: 0.60, weighted: 0.60 * t },
+            author: { score: a, weight: 0.25, weighted: 0.25 * a },
+            year: { score: y, weight: 0.15, weighted: 0.15 * y },
           },
         };
       }
@@ -3769,6 +3931,9 @@
       async function verifySingle(raw, mailto) {
         const p = parseCitation(raw);
 
+        // 检测是否是 arXiv 相关引用
+        const isArxiv = /arXiv/i.test(raw) || /\d{4}\.\d{4,5}/.test(raw);
+
         const [oa, cr] = await Promise.all([
           queryOpenAlex(p, mailto).catch((e) => ({ __error: e.message })),
           queryCrossref(p, mailto).catch((e) => ({ __error: e.message })),
@@ -3777,27 +3942,60 @@
         const oaItems = oa?.results || [];
         const crItems = cr?.message?.items || [];
 
-        const oaBest = pickBest(oaItems, (w) => scoreOpenAlexWork(p, w));
-        const crBest = pickBest(crItems, (it) => scoreCrossrefItem(p, it));
+        // 根据是否是 arXiv 选择评分函数
+        const oaScoreFn = isArxiv ? scoreOpenAlexWorkArxiv : scoreOpenAlexWork;
+        const crScoreFn = isArxiv ? scoreCrossrefItemArxiv : scoreCrossrefItem;
+
+        const oaBest = pickBest(oaItems, (w) => oaScoreFn(p, w));
+        const crBest = pickBest(crItems, (it) => crScoreFn(p, it));
 
         const oaScore = oaBest?.best ? oaBest.bestScore : 0;
         const crScore = crBest?.best ? crBest.bestScore : 0;
-        const combined =
-          Math.max(oaScore, crScore) * 0.6 + Math.min(oaScore, crScore) * 0.4;
 
-        // 生成综合评分详情
-        const combinedDetails = {
-          openAlex: {
-            score: oaScore,
-            weight: oaScore >= crScore ? 0.6 : 0.4,
-            weighted: oaScore >= crScore ? oaScore * 0.6 : oaScore * 0.4,
-          },
-          crossref: {
-            score: crScore,
-            weight: crScore > oaScore ? 0.6 : 0.4,
-            weighted: crScore > oaScore ? crScore * 0.6 : crScore * 0.4,
-          },
-        };
+        // 判断有效数据源数量（得分 > 0.1 视为有效匹配）
+        const oaValid = oaScore > 0.1;
+        const crValid = crScore > 0.1;
+
+        let combined;
+        let combinedDetails;
+
+        if (oaValid && crValid) {
+          // 两个数据源都有匹配：加权计算
+          combined = Math.max(oaScore, crScore) * 0.6 + Math.min(oaScore, crScore) * 0.4;
+          combinedDetails = {
+            openAlex: {
+              score: oaScore,
+              weight: oaScore >= crScore ? 0.6 : 0.4,
+              weighted: oaScore >= crScore ? oaScore * 0.6 : oaScore * 0.4,
+            },
+            crossref: {
+              score: crScore,
+              weight: crScore > oaScore ? 0.6 : 0.4,
+              weighted: crScore > oaScore ? crScore * 0.6 : crScore * 0.4,
+            },
+          };
+        } else if (oaValid) {
+          // 只有 OpenAlex 有匹配：直接使用该分数
+          combined = oaScore;
+          combinedDetails = {
+            openAlex: { score: oaScore, weight: 1.0, weighted: oaScore },
+            crossref: { score: crScore, weight: 0, weighted: 0 },
+          };
+        } else if (crValid) {
+          // 只有 Crossref 有匹配：直接使用该分数
+          combined = crScore;
+          combinedDetails = {
+            openAlex: { score: oaScore, weight: 0, weighted: 0 },
+            crossref: { score: crScore, weight: 1.0, weighted: crScore },
+          };
+        } else {
+          // 两个都没有有效匹配
+          combined = Math.max(oaScore, crScore);
+          combinedDetails = {
+            openAlex: { score: oaScore, weight: 0.5, weighted: oaScore * 0.5 },
+            crossref: { score: crScore, weight: 0.5, weighted: crScore * 0.5 },
+          };
+        }
 
         return {
           raw,
@@ -3873,11 +4071,15 @@
 
         const oaScore = combinedDetails.openAlex.score;
         const crScore = combinedDetails.crossref.score;
-        const combined =
-          combinedDetails.openAlex.weighted + combinedDetails.crossref.weighted;
 
-        // 判断哪个是主要来源
-        const oaIsMain = oaScore >= crScore;
+        // 计算综合得分
+        const combined = Math.max(oaScore, crScore) * 0.6 + Math.min(oaScore, crScore) * 0.4;
+
+        // 判断排名
+        const getRank = (score) => {
+          if (score >= Math.max(oaScore, crScore)) return "(主)";
+          return "(次)";
+        };
 
         let rows = `
     <div class="score-tooltip-row" style="padding-bottom: 8px; margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.15);">
@@ -3890,30 +4092,22 @@
     <div class="score-tooltip-row">
       <span class="score-tooltip-label">
         <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: linear-gradient(135deg, #4f46e5, #818cf8); margin-right: 6px;"></span>
-        OpenAlex ${oaIsMain ? "(主)" : "(次)"}
+        OpenAlex ${oaScore >= crScore ? "(主)" : "(次)"}
       </span>
-      <span class="score-tooltip-value ${getScoreClass(
-        oaScore
-      )}">${oaScore.toFixed(3)} × ${
-          oaIsMain ? "0.6" : "0.4"
-        } = ${combinedDetails.openAlex.weighted.toFixed(3)}</span>
+      <span class="score-tooltip-value ${getScoreClass(oaScore)}">${oaScore.toFixed(3)} × ${combinedDetails.openAlex.weight.toFixed(1)} = ${combinedDetails.openAlex.weighted.toFixed(3)}</span>
     </div>
     <div class="score-tooltip-row">
       <span class="score-tooltip-label">
         <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: linear-gradient(135deg, #f59e0b, #fbbf24); margin-right: 6px;"></span>
-        Crossref ${!oaIsMain ? "(主)" : "(次)"}
+        Crossref ${crScore > oaScore ? "(主)" : "(次)"}
       </span>
-      <span class="score-tooltip-value ${getScoreClass(
-        crScore
-      )}">${crScore.toFixed(3)} × ${
-          !oaIsMain ? "0.6" : "0.4"
-        } = ${combinedDetails.crossref.weighted.toFixed(3)}</span>
-    </div>
+      <span class="score-tooltip-value ${getScoreClass(crScore)}">${crScore.toFixed(3)} × ${combinedDetails.crossref.weight.toFixed(1)} = ${combinedDetails.crossref.weighted.toFixed(3)}</span>
+    </div>`;
+
+        rows += `
     <div class="score-tooltip-row">
       <span class="score-tooltip-label">综合得分</span>
-      <span class="score-tooltip-value ${getScoreClass(
-        combined
-      )}">${combined.toFixed(3)}</span>
+      <span class="score-tooltip-value ${getScoreClass(combined)}">${combined.toFixed(3)}</span>
     </div>
   `;
 
@@ -3936,6 +4130,42 @@
         const cr = crBest?.best;
         const oaDetails = oaBest?.bestDetails;
         const crDetails = crBest?.bestDetails;
+
+        // 格式化 OpenAlex 作者
+        const formatOaAuthors = (authorships) => {
+          if (!authorships || authorships.length === 0) return "-";
+          return authorships.map(a => {
+            const name = a.author?.display_name || a.raw_author_name || "";
+            // 处理 OpenAlex 中文名字格式 "爽 薛" -> "薛爽"
+            const parts = name.trim().split(/\s+/);
+            if (parts.length === 2) {
+              const [p1, p2] = parts;
+              const isChinese = (s) => /^[\u4e00-\u9fa5]+$/.test(s);
+              if (isChinese(p1) && isChinese(p2)) {
+                // 如果第二部分是单字（姓），格式是 "名 姓"
+                if (p2.length === 1) return p2 + p1;
+                // 如果第一部分是单字（姓），格式是 "姓 名"
+                if (p1.length === 1) return p1 + p2;
+              }
+            }
+            return name;
+          }).join(", ");
+        };
+
+        // 格式化 Crossref 作者
+        const formatCrAuthors = (authors) => {
+          if (!authors || authors.length === 0) return "-";
+          return authors.map(a => {
+            const family = a.family || "";
+            const given = a.given || "";
+            // 检测中文名字
+            const isChinese = (s) => /^[\u4e00-\u9fa5]+$/.test(s.trim());
+            if (isChinese(family) || isChinese(given)) {
+              return family + given;
+            }
+            return given ? `${given} ${family}` : family;
+          }).join(", ");
+        };
 
         // 获取综合评分详情（取两个数据源中较高的分数）
         const getFieldScore = (field) => {
@@ -4034,6 +4264,8 @@
               <div class="detail-grid">
                 <div class="detail-label">标题</div>
                 <div class="detail-value" style="${getOaLowScoreStyle('title')}">${esc(oa.title || "-")}</div>
+                <div class="detail-label">作者</div>
+                <div class="detail-value" style="${getOaLowScoreStyle('author')}">${esc(formatOaAuthors(oa.authorships))}</div>
                 <div class="detail-label">期刊/出版社</div>
                 <div class="detail-value" style="${getOaLowScoreStyle('journal')}">${esc(
                   oa.primary_location?.source?.display_name || "-"
@@ -4078,6 +4310,8 @@
                 <div class="detail-value" style="${getCrLowScoreStyle('title')}">${esc(
                   (cr.title && cr.title[0]) || "-"
                 )}</div>
+                <div class="detail-label">作者</div>
+                <div class="detail-value" style="${getCrLowScoreStyle('author')}">${esc(formatCrAuthors(cr.author))}</div>
                 <div class="detail-label">期刊/出版社</div>
                 <div class="detail-value" style="${getCrLowScoreStyle('journal')}">${esc(
                   (cr["container-title"] && cr["container-title"][0]) || "-"

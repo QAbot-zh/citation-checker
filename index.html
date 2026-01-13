@@ -609,6 +609,22 @@
         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
       }
 
+      /* 格式胶囊样式 */
+      .format-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 11px;
+        font-weight: 500;
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+        color: var(--primary);
+        border: 1px solid rgba(99, 102, 241, 0.2);
+        white-space: nowrap;
+        flex-shrink: 0;
+        margin-right: 8px;
+      }
+
       /* Tooltip 样式 */
       .score-tooltip-wrapper {
         position: relative;
@@ -1180,7 +1196,7 @@
       <p>
         通过 OpenAlex 与 Crossref
         双数据源交叉验证，智能解析引用字段并评估可信度。支持 GB/T
-        7714、APA、MLA、IEEE、Chicago、Vancouver
+        7714、APA、MLA、IEEE、Chicago、Vancouver、Harvard、Nature、Science
         等多种格式，自动识别并容错解析。
       </p>
     </div>
@@ -1194,7 +1210,7 @@
             placeholder='在此粘贴引用条目，每行一条。支持多种格式：&#10;&#10;中文 GB/T 7714: 张三. 论文标题[J]. 期刊名, 2020, 10(2): 1-20.&#10;APA: Author, A. A. (2020). Title. Journal, 10(2), 1-20.&#10;IEEE: A. Author, "Title," Journal, vol. 10, no. 2, pp. 1-20, 2020.&#10;MLA: Author. "Title." Journal 10.2 (2020): 1-20.&#10;Vancouver: Author. Title. Journal. 2020;10(2):1-20.&#10;&#10;格式乱了也没关系，系统会智能识别！'
           ></textarea>
           <div class="hint">
-            💡 提示：支持 GB/T 7714、APA、MLA、IEEE、Chicago、Vancouver
+            💡 提示：支持 GB/T 7714、APA、MLA、IEEE、Chicago、Vancouver、Harvard、Nature、Science
             等格式。每行一条，格式不规范也能智能解析。
           </div>
         </div>
@@ -1555,7 +1571,14 @@
           <div class="format-example">
             <h4>📗 MLA 格式 (现代语言协会)</h4>
             <div class="example-box">
-              <code>Smith, John A. "Deep Learning in Medical Imaging." Nature Medicine 26.3 (2020): 317-325.</code>
+              <code>Smith, John A. "Deep Learning in Medical Imaging." Nature Medicine, vol. 26, no. 3, 2020, pp. 317-325.</code>
+            </div>
+          </div>
+
+          <div class="format-example">
+            <h4>📚 Chicago 格式</h4>
+            <div class="example-box">
+              <code>John A. Smith, "Deep Learning in Medical Imaging," Nature Medicine 26, no. 3 (2020): 317-325.</code>
             </div>
           </div>
 
@@ -1584,6 +1607,26 @@
             <h4>📋 Harvard 格式</h4>
             <div class="example-box">
               <code>Smith, J.A. (2020) Deep learning in medical imaging. Nature Medicine, 26(3), pp. 317-325.</code>
+            </div>
+          </div>
+
+          <div class="format-example">
+            <h4>🔬 Nature 格式</h4>
+            <div class="example-box">
+              <code>Smith, J. A. Deep learning in medical imaging. Nature Medicine 26, 317–325 (2020).</code>
+            </div>
+            <div class="example-box">
+              <code>Smith, J. A. et al. A new approach to quantum computing. Nature 600, 123-128 (2021).</code>
+            </div>
+          </div>
+
+          <div class="format-example">
+            <h4>🧪 Science 格式</h4>
+            <div class="example-box">
+              <code>J. A. Smith, Deep learning in medical imaging. Science 368, 1234-1238 (2020).</code>
+            </div>
+            <div class="example-box">
+              <code>J. A. Smith et al., Advances in gene therapy. Science 372, 456 (2021).</code>
             </div>
           </div>
 
@@ -1751,73 +1794,226 @@
       }
 
       // 作者相似度（处理缩写情况，加权组合）
+      // 支持两种输入：数组或字符串
       function authorSimilarity(inputAuthors, apiAuthors) {
         if (!inputAuthors?.length || !apiAuthors) return 0;
 
-        const inputStr = Array.isArray(inputAuthors)
-          ? inputAuthors.join(" ")
-          : inputAuthors;
-        const apiStr = apiAuthors;
+        // 从单个作者字符串提取姓氏和名字首字母
+        const extractSingleAuthor = (authorStr) => {
+          if (!authorStr || typeof authorStr !== 'string') return null;
 
-        // 提取姓氏（通常是最后一个词或逗号前的词）
-        const extractLastNames = (str) => {
-          // 分割作者，处理 "and" 和逗号
-          const authors = str
-            .split(/,\s*(?:and\s+)?|\s+and\s+/i)
-            .filter(Boolean);
-          return authors
-            .map((a) => {
-              const parts = a.trim().split(/\s+/);
-              // 如果是 "Lastname, Firstname" 格式
-              if (a.includes(",")) {
-                return parts[0].replace(",", "").toLowerCase();
+          const a = authorStr.trim();
+          if (a.length < 2) return null;
+
+          const parts = a.split(/\s+/);
+          let lastName = "";
+          let givenInitials = [];
+
+          // 如果是 "Lastname, Firstname" 格式
+          if (a.includes(",")) {
+            const [lastPart, firstPart] = a.split(/,\s*/);
+            lastName = lastPart.trim().toLowerCase();
+            // 提取名字首字母
+            if (firstPart) {
+              const firstParts = firstPart.trim().split(/\s+/);
+              for (const p of firstParts) {
+                const clean = p.replace(/\./g, "");
+                if (clean.length > 0) givenInitials.push(clean[0].toLowerCase());
               }
-              // 否则取最后一个词作为姓氏
-              return parts[parts.length - 1].toLowerCase();
-            })
-            .filter((n) => n.length > 1);
+            }
+          } else {
+            // "Firstname Lastname" 或 "F. Lastname" 或 "Smith JA" 格式
+            // 检测 "Smith JA" 格式（姓氏后跟大写缩写）
+            const lastPart = parts[parts.length - 1];
+            if (parts.length >= 2 && /^[A-Z]{1,3}$/.test(lastPart)) {
+              // "Smith JA" 格式：最后是缩写，倒数第二个是姓氏
+              lastName = parts[parts.length - 2].toLowerCase();
+              // 缩写的每个字母都是名字首字母
+              for (const c of lastPart) {
+                givenInitials.push(c.toLowerCase());
+              }
+              // 还可能有前面的名字部分
+              for (let i = 0; i < parts.length - 2; i++) {
+                const p = parts[i].replace(/\./g, "");
+                if (p.length > 0) givenInitials.unshift(p[0].toLowerCase());
+              }
+            } else {
+              // 标准 "Firstname Lastname" 格式
+              lastName = lastPart.toLowerCase();
+              for (let i = 0; i < parts.length - 1; i++) {
+                const p = parts[i].replace(/\./g, "");
+                if (p.length > 0) givenInitials.push(p[0].toLowerCase());
+              }
+            }
+          }
+
+          if (lastName.length < 2) return null;
+          return { lastName, givenInitials };
         };
 
-        const inputLastNames = extractLastNames(inputStr);
-        const apiLastNames = extractLastNames(apiStr);
+        // 从字符串解析多个作者（用于兼容旧的字符串输入）
+        const parseAuthorsFromString = (str) => {
+          if (!str) return [];
 
-        // 姓氏匹配
-        let lastNameMatches = 0;
-        let partialMatches = 0;
-        for (const iln of inputLastNames) {
-          for (const aln of apiLastNames) {
-            // 完全匹配
-            if (iln === aln) {
-              lastNameMatches++;
-              break;
+          // 智能分割作者列表
+          let authorList = [];
+
+          // 先按 " and " 或 " & " 分割
+          const andParts = str.split(/\s+and\s+|\s*&\s*/i).filter(Boolean);
+
+          for (const part of andParts) {
+            // 检测是否是 "Lastname, Firstname" 格式
+            const commaMatch = part.match(/^([^,]+),\s*([A-Z][^,]*?)$/);
+            if (commaMatch) {
+              authorList.push(part.trim());
+            } else if (part.includes(',')) {
+              const commaParts = part.split(/,\s*/);
+              let isMultipleAuthors = true;
+
+              if (commaParts.length === 2) {
+                const secondPart = commaParts[1].trim();
+                if (secondPart.length < 10 && /^[A-Z]/.test(secondPart)) {
+                  isMultipleAuthors = false;
+                  authorList.push(part.trim());
+                }
+              }
+
+              if (isMultipleAuthors) {
+                for (const cp of commaParts) {
+                  if (cp.trim()) authorList.push(cp.trim());
+                }
+              }
+            } else {
+              authorList.push(part.trim());
             }
-            // 前缀匹配或高编辑相似度（部分匹配，给予较低分数）
-            if (
-              (iln.length >= 3 && aln.startsWith(iln)) ||
-              (aln.length >= 3 && iln.startsWith(aln)) ||
-              editSimilarity(iln, aln) > 0.8
+          }
+
+          return authorList.map(extractSingleAuthor).filter(Boolean);
+        };
+
+        // 处理输入作者（可能是数组或字符串）
+        let inputAuthorsInfo = [];
+        if (Array.isArray(inputAuthors)) {
+          // 数组：每个元素是一个作者
+          inputAuthorsInfo = inputAuthors.map(extractSingleAuthor).filter(Boolean);
+        } else {
+          // 字符串：需要解析
+          inputAuthorsInfo = parseAuthorsFromString(inputAuthors);
+        }
+
+        // 处理 API 作者（可能是数组或字符串）
+        let apiAuthorsInfo = [];
+        if (Array.isArray(apiAuthors)) {
+          // 数组：每个元素是一个作者（可能是字符串或对象）
+          apiAuthorsInfo = apiAuthors.map(a => {
+            if (typeof a === 'string') {
+              return extractSingleAuthor(a);
+            } else if (a && typeof a === 'object') {
+              // Crossref 格式：{family: "Zhang", given: "Jinglin"}
+              // OpenAlex 格式：{author: {display_name: "Jinglin Zhang"}}
+              if (a.family) {
+                const lastName = a.family.toLowerCase();
+                const givenInitials = [];
+                if (a.given) {
+                  // 提取 given name 的首字母
+                  const givenParts = a.given.trim().split(/\s+/);
+                  for (const p of givenParts) {
+                    const clean = p.replace(/\./g, "");
+                    if (clean.length > 0) givenInitials.push(clean[0].toLowerCase());
+                  }
+                }
+                return { lastName, givenInitials };
+              } else if (a.author?.display_name) {
+                return extractSingleAuthor(a.author.display_name);
+              } else if (a.display_name) {
+                return extractSingleAuthor(a.display_name);
+              }
+            }
+            return null;
+          }).filter(Boolean);
+        } else {
+          // 字符串：需要解析
+          apiAuthorsInfo = parseAuthorsFromString(apiAuthors);
+        }
+
+        if (inputAuthorsInfo.length === 0 || apiAuthorsInfo.length === 0) {
+          // 回退到 Jaccard 相似度
+          const inputStr = Array.isArray(inputAuthors) ? inputAuthors.join(" ") : inputAuthors;
+          const apiStr = Array.isArray(apiAuthors)
+            ? apiAuthors.map(a => typeof a === 'string' ? a : (a.family ? `${a.given || ''} ${a.family}` : a.author?.display_name || '')).join(" ")
+            : apiAuthors;
+          return jaccard(inputStr, apiStr);
+        }
+
+        // 作者匹配（姓氏 + 名字首字母）
+        let totalScore = 0;
+        let matchedCount = 0;
+
+        for (const inputAuthor of inputAuthorsInfo) {
+          let bestMatchScore = 0;
+
+          for (const apiAuthor of apiAuthorsInfo) {
+            let score = 0;
+
+            // 姓氏匹配（权重 70%）
+            if (inputAuthor.lastName === apiAuthor.lastName) {
+              score += 0.7;
+            } else if (
+              inputAuthor.lastName.length >= 3 &&
+              (apiAuthor.lastName.startsWith(inputAuthor.lastName) ||
+                inputAuthor.lastName.startsWith(apiAuthor.lastName))
             ) {
-              partialMatches++;
-              break;
+              score += 0.5; // 前缀匹配
+            } else if (editSimilarity(inputAuthor.lastName, apiAuthor.lastName) > 0.8) {
+              score += 0.5; // 高编辑相似度
             }
+
+            // 名字首字母匹配（权重 30%）
+            if (inputAuthor.givenInitials.length > 0 && apiAuthor.givenInitials.length > 0) {
+              let initialMatches = 0;
+              const minLen = Math.min(
+                inputAuthor.givenInitials.length,
+                apiAuthor.givenInitials.length
+              );
+              for (let i = 0; i < minLen; i++) {
+                if (inputAuthor.givenInitials[i] === apiAuthor.givenInitials[i]) {
+                  initialMatches++;
+                }
+              }
+              // 首字母匹配比例
+              const initialScore = initialMatches / minLen;
+              score += 0.3 * initialScore;
+            } else if (score > 0) {
+              // 如果姓氏匹配但没有名字信息，给予部分分数
+              score += 0.15;
+            }
+
+            bestMatchScore = Math.max(bestMatchScore, score);
+          }
+
+          if (bestMatchScore > 0) {
+            totalScore += bestMatchScore;
+            matchedCount++;
           }
         }
 
         const totalAuthors = Math.max(
-          inputLastNames.length,
-          apiLastNames.length
+          inputAuthorsInfo.length,
+          apiAuthorsInfo.length
         );
-        // 完全匹配得满分，部分匹配得 0.7 分
-        const lastNameScore =
-          totalAuthors > 0
-            ? (lastNameMatches + partialMatches * 0.7) / totalAuthors
-            : 0;
 
-        // 原始 Jaccard 作为补充
+        // 计算最终得分
+        const authorScore = totalAuthors > 0 ? totalScore / totalAuthors : 0;
+
+        // 原始 Jaccard 作为补充（权重降低）
+        const inputStr = Array.isArray(inputAuthors) ? inputAuthors.join(" ") : inputAuthors;
+        const apiStr = Array.isArray(apiAuthors)
+          ? apiAuthors.map(a => typeof a === 'string' ? a : (a.family ? `${a.given || ''} ${a.family}` : a.author?.display_name || '')).join(" ")
+          : apiAuthors;
         const jaccardScore = jaccard(inputStr, apiStr);
 
-        // 加权组合：姓氏匹配权重高，Jaccard 作为补充
-        return lastNameScore * 0.7 + jaccardScore * 0.3;
+        // 加权组合：作者匹配权重高，Jaccard 作为补充
+        return authorScore * 0.85 + jaccardScore * 0.15;
       }
 
       function pickBest(items, scoreFn) {
@@ -2103,6 +2299,7 @@
           /\[(\d{4})\]/, // [2019]
           /,\s*(\d{4})\s*[,.:;]/, // , 2019,
           /,\s*(\d{4})\s*$/, // 结尾的年份
+          /,\s*[A-Za-z]{3,9}\s+(\d{4})\.?\s*$/, // , May 2022. (IEEE 格式)
           /\b(19|20)\d{2}\b/, // 任意位置的4位年份
         ];
         for (const pat of yearPatterns) {
@@ -2128,12 +2325,31 @@
           /\bvol\.\s*\d+/i.test(s) ||
           /\bno\.\s*\d+/i.test(s) ||
           /\bpp\.\s*\d+/i.test(s);
+        // MLA 格式：Lastname, Firstname. "Title." Journal, vol. X, no. X, Year, pp. X-X.
+        const hasMLAStyle =
+          hasQuotedTitle &&
+          /,\s*vol\.\s*\d+/i.test(s) &&
+          /,\s*\d{4}\s*,/i.test(s);
+        // Chicago 格式：Firstname Lastname, "Title," Journal Vol, no. X (Year): Pages.
+        const hasChicagoStyle =
+          hasQuotedTitle &&
+          /,\s*no\.\s*\d+\s*\(\d{4}\)\s*:/i.test(s);
         const hasAPAStyle =
           /^[A-Z][^()]+,\s*[A-Z]\.\s*[A-Z]?\.?\s*(?:\(|\[)?\d{4}(?:\)|\])?\./.test(
             s
           );
         const hasVancouverStyle =
-          /;\s*\d{4}\s*[;:]/i.test(s) || /\.\s*\d{4}\s*;\s*\d+/.test(s);
+          /;\s*\d{4}\s*[;:]/i.test(s) || /\.\s*\d{4}\s*;\s*\d+/.test(s) ||
+          /\.\s*\d{4}\s+[A-Za-z]{3,9}\s*;\s*\d+/.test(s);  // 支持 2017 Jun;3(2) 格式
+        // Harvard 格式：Author (Year) Title. Journal, Vol(Issue), pp. Pages.
+        // 或: Author (Year) 'Title', Journal, Vol(Issue), pp. Pages.
+        // 注意：Harvard 年份后没有句号，APA 年份后有句号
+        const hasHarvardStyle =
+          /^[A-Z][^()]+\s*\(\d{4}\)\s*[^.]/.test(s) &&  // 年份后不是句号
+          (/,\s*pp?\.\s*\d+/i.test(s) || /,\s*\d+\s*\(\d+\)\s*,/.test(s));
+        // Nature/Science 格式：Journal Volume, Pages (Year)
+        const hasNatureScienceStyle =
+          /[A-Z][A-Za-z.\s&]+\s+\d+,\s*\d+[-–—]?\d*\s*\(\d{4}\)/.test(s);
 
         let title = null;
         let journal = null;
@@ -2143,12 +2359,14 @@
         let firstPage = null,
           lastPage = null;
         let publisher = null;
+        let format = "通用";  // 默认格式
 
         // =========== 格式检测与解析 ===========
 
         if (hasChineseMarker) {
           // ===== 中文 GB/T 7714 格式解析 =====
           // 格式：作者. 标题[J]. 期刊名, 年份, 卷(期): 页码.
+          format = "GB/T 7714";
           const result = parseChineseGBFormat(s);
           title = result.title;
           journal = result.journal;
@@ -2158,9 +2376,47 @@
           firstPage = result.firstPage;
           lastPage = result.lastPage;
           publisher = result.publisher;
+        } else if (hasHarvardStyle) {
+          // ===== Harvard 格式解析 =====
+          // 格式：Smith, J.A. (2020) Title. Journal, Vol(Issue), pp. Pages.
+          // 或: Author (Year) 'Title', Journal, Vol(Issue), pp. Pages.
+          format = "Harvard";
+          const result = parseHarvardFormat(s);
+          title = result.title;
+          journal = result.journal;
+          authors = result.authors;
+          volume = result.volume;
+          issue = result.issue;
+          firstPage = result.firstPage;
+          lastPage = result.lastPage;
+        } else if (hasMLAStyle) {
+          // ===== MLA 格式解析 =====
+          // 格式：Lastname, Firstname. "Title." Journal, vol. X, no. X, Year, pp. X-X.
+          format = "MLA";
+          const result = parseMLAFormat(s);
+          title = result.title;
+          journal = result.journal;
+          authors = result.authors;
+          volume = result.volume;
+          issue = result.issue;
+          firstPage = result.firstPage;
+          lastPage = result.lastPage;
+        } else if (hasChicagoStyle) {
+          // ===== Chicago 格式解析 =====
+          // 格式：Firstname Lastname, "Title," Journal Vol, no. X (Year): Pages.
+          format = "Chicago";
+          const result = parseChicagoFormat(s);
+          title = result.title;
+          journal = result.journal;
+          authors = result.authors;
+          volume = result.volume;
+          issue = result.issue;
+          firstPage = result.firstPage;
+          lastPage = result.lastPage;
         } else if (hasIEEEStyle) {
           // ===== IEEE 格式解析 =====
           // 格式：A. Author, "Title," Journal, vol. X, no. X, pp. X-X, Year.
+          format = "IEEE";
           const result = parseIEEEFormat(s);
           title = result.title;
           journal = result.journal;
@@ -2170,7 +2426,8 @@
           firstPage = result.firstPage;
           lastPage = result.lastPage;
         } else if (hasQuotedTitle) {
-          // ===== 带引号标题的格式（MLA, Chicago 等）=====
+          // ===== 带引号标题的通用格式 =====
+          format = "引号标题";
           const result = parseQuotedTitleFormat(s);
           title = result.title;
           journal = result.journal;
@@ -2182,6 +2439,7 @@
         } else if (hasAPAStyle) {
           // ===== APA 格式解析 =====
           // 格式：Author, A. A. (Year). Title. Journal, Volume(Issue), Pages.
+          format = "APA";
           const result = parseAPAFormat(s);
           title = result.title;
           journal = result.journal;
@@ -2193,6 +2451,7 @@
         } else if (hasVancouverStyle) {
           // ===== Vancouver 格式解析 =====
           // 格式：Author. Title. Journal. Year;Volume(Issue):Pages.
+          format = "Vancouver";
           const result = parseVancouverFormat(s);
           title = result.title;
           journal = result.journal;
@@ -2201,8 +2460,34 @@
           issue = result.issue;
           firstPage = result.firstPage;
           lastPage = result.lastPage;
+        } else if (hasNatureScienceStyle) {
+          // ===== Nature/Science 格式解析 =====
+          // 格式：Author. Title. Journal Volume, Pages (Year).
+          // 先尝试 Nature 格式
+          format = "Nature/Science";
+          const result = parseNatureFormat(s);
+          if (result.title || result.journal) {
+            title = result.title;
+            journal = result.journal;
+            authors = result.authors;
+            volume = result.volume;
+            issue = result.issue;
+            firstPage = result.firstPage;
+            lastPage = result.lastPage;
+          } else {
+            // 尝试 Science 格式
+            const sciResult = parseScienceFormat(s);
+            title = sciResult.title;
+            journal = sciResult.journal;
+            authors = sciResult.authors;
+            volume = sciResult.volume;
+            issue = sciResult.issue;
+            firstPage = sciResult.firstPage;
+            lastPage = sciResult.lastPage;
+          }
         } else {
           // ===== 通用智能解析 =====
+          format = "通用";
           const result = parseGenericFormat(s);
           title = result.title;
           journal = result.journal;
@@ -2253,6 +2538,7 @@
           lastPage,
           authors,
           publisher,
+          format,
         };
       }
 
@@ -2520,6 +2806,110 @@
         return { title, journal, authors, volume, issue, firstPage, lastPage };
       }
 
+      // ===== MLA 格式解析 =====
+      // 格式：Lastname, Firstname. "Title." Journal, vol. X, no. X, Year, pp. X-X.
+      function parseMLAFormat(s) {
+        let title = null,
+          journal = null,
+          authors = [],
+          volume = null,
+          issue = null;
+        let firstPage = null,
+          lastPage = null;
+
+        // 提取引号内的标题
+        const titleMatch = s.match(/"([^"]+)"/);
+        if (titleMatch) {
+          title = titleMatch[1].trim();
+
+          const quoteStart = s.indexOf(titleMatch[0]);
+          const quoteEnd = quoteStart + titleMatch[0].length;
+
+          // 作者（引号前）
+          let beforeQuote = s.slice(0, quoteStart).trim();
+          beforeQuote = beforeQuote.replace(/[,，.。]\s*$/, "");
+          if (beforeQuote) {
+            authors = parseWesternAuthors(beforeQuote);
+          }
+
+          // 引号后的内容
+          let afterQuote = s.slice(quoteEnd).trim();
+          afterQuote = afterQuote.replace(/^[,，.。]\s*/, "");
+
+          // MLA 格式：Journal, vol. X, no. X, Year, pp. X-X.
+          const mlaMatch = afterQuote.match(
+            /^([^,]+),\s*vol\.\s*(\d+)(?:,\s*no\.\s*(\d+))?(?:,\s*\d{4})?(?:,\s*pp?\.\s*(\d+)\s*[-–—]\s*(\d+))?/i
+          );
+          if (mlaMatch) {
+            journal = mlaMatch[1].trim();
+            volume = mlaMatch[2];
+            issue = mlaMatch[3] || null;
+            firstPage = mlaMatch[4] || null;
+            lastPage = mlaMatch[5] || null;
+          } else {
+            // 尝试提取期刊名
+            const jMatch = afterQuote.match(/^([^,]+)/);
+            if (jMatch) {
+              journal = jMatch[1].trim();
+            }
+          }
+        }
+
+        return { title, journal, authors, volume, issue, firstPage, lastPage };
+      }
+
+      // ===== Chicago 格式解析 =====
+      // 格式：Firstname Lastname, "Title," Journal Vol, no. X (Year): Pages.
+      function parseChicagoFormat(s) {
+        let title = null,
+          journal = null,
+          authors = [],
+          volume = null,
+          issue = null;
+        let firstPage = null,
+          lastPage = null;
+
+        // 提取引号内的标题
+        const titleMatch = s.match(/"([^"]+)"/);
+        if (titleMatch) {
+          title = titleMatch[1].trim();
+
+          const quoteStart = s.indexOf(titleMatch[0]);
+          const quoteEnd = quoteStart + titleMatch[0].length;
+
+          // 作者（引号前）
+          let beforeQuote = s.slice(0, quoteStart).trim();
+          beforeQuote = beforeQuote.replace(/[,，]\s*$/, "");
+          if (beforeQuote) {
+            authors = parseWesternAuthors(beforeQuote);
+          }
+
+          // 引号后的内容
+          let afterQuote = s.slice(quoteEnd).trim();
+          afterQuote = afterQuote.replace(/^[,，]\s*/, "");
+
+          // Chicago 格式：Journal Vol, no. X (Year): Pages.
+          const chicagoMatch = afterQuote.match(
+            /^([A-Za-z][A-Za-z.\s&]+?)\s+(\d+)(?:,\s*no\.\s*(\d+))?\s*\(\d{4}\)\s*:\s*(\d+)\s*[-–—]?\s*(\d+)?/i
+          );
+          if (chicagoMatch) {
+            journal = chicagoMatch[1].trim();
+            volume = chicagoMatch[2];
+            issue = chicagoMatch[3] || null;
+            firstPage = chicagoMatch[4] || null;
+            lastPage = chicagoMatch[5] || null;
+          } else {
+            // 尝试提取期刊名
+            const jMatch = afterQuote.match(/^([A-Za-z][A-Za-z.\s&]+?)(?:\s+\d|\()/);
+            if (jMatch) {
+              journal = jMatch[1].trim();
+            }
+          }
+        }
+
+        return { title, journal, authors, volume, issue, firstPage, lastPage };
+      }
+
       // ===== APA 格式解析 =====
       function parseAPAFormat(s) {
         let title = null,
@@ -2532,20 +2922,23 @@
 
         // APA: Author, A. A., & Author, B. B. (Year). Title. Journal, Volume(Issue), Pages. doi
 
+        // 先移除末尾的 URL/DOI 链接
+        const cleanedS = s.replace(/\s*https?:\/\/[^\s]+\s*$/i, '').trim();
+
         // 查找年份位置
-        const yearMatch = s.match(/\((\d{4})\)\./);
+        const yearMatch = cleanedS.match(/\((\d{4})\)\./);
         if (yearMatch) {
-          const yearIdx = s.indexOf(yearMatch[0]);
+          const yearIdx = cleanedS.indexOf(yearMatch[0]);
 
           // 作者（年份前）
-          const authorPart = s.slice(0, yearIdx).trim();
+          const authorPart = cleanedS.slice(0, yearIdx).trim();
           authors = parseWesternAuthors(authorPart);
 
           // 年份后的内容
-          const afterYear = s.slice(yearIdx + yearMatch[0].length).trim();
+          const afterYear = cleanedS.slice(yearIdx + yearMatch[0].length).trim();
 
-          // 按句号分割
-          const parts = afterYear.split(/\.\s+/);
+          // 按句号分割（排除 URL）
+          const parts = afterYear.split(/\.\s+/).filter(p => !p.startsWith('http'));
 
           if (parts.length >= 1) {
             // 第一部分是标题
@@ -2589,6 +2982,7 @@
           lastPage = null;
 
         // Vancouver: Author. Title. Journal. Year;Volume(Issue):Pages.
+        // 或: Author. Title. Journal. Year Month;Volume(Issue):Pages.
 
         // 按句号分割
         const parts = s.split(/\.\s+/);
@@ -2602,28 +2996,44 @@
             title = parts[1].trim();
           }
 
-          // 第三部分：期刊和元数据
+          // 第三部分及之后：期刊和元数据
           if (parts.length >= 3) {
+            // 检查 parts[2] 是否包含年份和卷期信息
             const journalPart = parts[2];
-            // Journal. Year;Vol(Issue):Pages
+            // Journal. Year;Vol(Issue):Pages 或 Journal. Year Month;Vol(Issue):Pages
             const jMatch = journalPart.match(
-              /^([^.;]+?)(?:\.\s*|\s+)?\d{4}\s*;\s*(\d+)(?:\((\d+)\))?:?\s*(\d+)?\s*[-–—]?\s*(\d+)?/
+              /^([^.;]+?)(?:\.\s*|\s+)?(\d{4})(?:\s+[A-Za-z]{3,9})?\s*;\s*(\d+)(?:\((\d+)\))?:?\s*(\d+)?\s*[-–—]?\s*(\d+)?/
             );
             if (jMatch) {
               journal = jMatch[1].trim();
-              volume = jMatch[2];
-              issue = jMatch[3] || null;
-              firstPage = jMatch[4] || null;
-              lastPage = jMatch[5] || null;
+              volume = jMatch[3];
+              issue = jMatch[4] || null;
+              firstPage = jMatch[5] || null;
+              lastPage = jMatch[6] || null;
             } else {
-              // 期刊名（到年份或分号前）
+              // 期刊名可能在 parts[2]，年份/卷期在 parts[3]
               journal = journalPart.split(/\s*[.;]\s*|\s+\d{4}/)[0].trim();
+
+              // 检查 parts[3] 是否有年份和卷期信息
+              if (parts.length >= 4) {
+                const metaPart = parts[3];
+                // Year;Vol(Issue):Pages 或 Year Month;Vol(Issue):Pages
+                const metaMatch = metaPart.match(
+                  /^(\d{4})(?:\s+[A-Za-z]{3,9})?\s*;\s*(\d+)(?:\((\d+)\))?:?\s*(\d+)?\s*[-–—]?\s*(\d+)?/
+                );
+                if (metaMatch) {
+                  volume = metaMatch[2];
+                  issue = metaMatch[3] || null;
+                  firstPage = metaMatch[4] || null;
+                  lastPage = metaMatch[5] || null;
+                }
+              }
             }
           }
         }
 
-        // 补充提取卷期页码
-        const viMatch = s.match(/(\d{4})\s*;\s*(\d+)\s*(?:\(\s*(\d+)\s*\))?/);
+        // 补充提取卷期页码（支持带月份的格式）
+        const viMatch = s.match(/(\d{4})(?:\s+[A-Za-z]{3,9})?\s*;\s*(\d+)\s*(?:\(\s*(\d+)\s*\))?/);
         if (viMatch && !volume) {
           volume = viMatch[2];
           issue = viMatch[3] || null;
@@ -2633,6 +3043,205 @@
         if (ppMatch && !firstPage) {
           firstPage = ppMatch[1];
           lastPage = ppMatch[2];
+        }
+
+        return { title, journal, authors, volume, issue, firstPage, lastPage };
+      }
+
+      // ===== Harvard 格式解析 =====
+      // 格式：Smith, J.A. (2020) Deep learning in medical imaging. Nature Medicine, 26(3), pp. 317-325.
+      function parseHarvardFormat(s) {
+        let title = null,
+          journal = null,
+          authors = [],
+          volume = null,
+          issue = null;
+        let firstPage = null,
+          lastPage = null;
+
+        // Harvard: Author, A.A. (Year) Title. Journal, Volume(Issue), pp. Pages.
+        // 或: Author, A.A. (Year) 'Title', Journal, Volume(Issue), pp. Pages.
+
+        // 查找年份位置 (Year)
+        const yearMatch = s.match(/\((\d{4})\)/);
+        if (yearMatch) {
+          const yearIdx = s.indexOf(yearMatch[0]);
+
+          // 作者（年份前）
+          const authorPart = s.slice(0, yearIdx).trim();
+          authors = parseWesternAuthors(authorPart);
+
+          // 年份后的内容
+          let afterYear = s.slice(yearIdx + yearMatch[0].length).trim();
+
+          // 查找标题（到第一个句号或引号结束）
+          // 支持带引号的标题
+          const quotedTitle = afterYear.match(/^['"]([^'"]+)['"]/);
+          if (quotedTitle) {
+            title = quotedTitle[1].trim();
+            afterYear = afterYear.slice(quotedTitle[0].length).trim();
+            afterYear = afterYear.replace(/^[,.\s]+/, "");
+          } else {
+            // 不带引号的标题（到句号为止）
+            const titleEnd = afterYear.indexOf(". ");
+            if (titleEnd !== -1) {
+              title = afterYear.slice(0, titleEnd).trim();
+              afterYear = afterYear.slice(titleEnd + 2).trim();
+            }
+          }
+
+          // 期刊信息：Journal, Volume(Issue), pp. Pages
+          const journalMatch = afterYear.match(
+            /^([^,]+),\s*(\d+)(?:\((\d+)\))?(?:,\s*pp?\.\s*(\d+)[-–—]?(\d+)?)?/
+          );
+          if (journalMatch) {
+            journal = journalMatch[1].trim();
+            volume = journalMatch[2];
+            issue = journalMatch[3] || null;
+            firstPage = journalMatch[4] || null;
+            lastPage = journalMatch[5] || null;
+          } else {
+            // 只有期刊名
+            const jMatch = afterYear.match(/^([^,.\d]+)/);
+            if (jMatch) {
+              journal = jMatch[1].trim();
+            }
+          }
+        } else {
+          // 没有标准的年份格式，尝试通用解析
+          return parseGenericFormat(s);
+        }
+
+        return { title, journal, authors, volume, issue, firstPage, lastPage };
+      }
+
+      // ===== Nature 格式解析 =====
+      // 格式：Smith, J. A. Deep learning in medical imaging. Nature Medicine 26, 317–325 (2020).
+      // 或：Smith, J. A. et al. Title. Nature 600, 123-128 (2021).
+      function parseNatureFormat(s) {
+        let title = null,
+          journal = null,
+          authors = [],
+          volume = null,
+          issue = null;
+        let firstPage = null,
+          lastPage = null;
+
+        // Nature 格式特征：期刊名后直接跟卷号（无逗号），页码后跟年份
+        // 策略：从后往前找 "Journal Volume, Pages (Year)" 模式
+        // 期刊名限制为1-4个单词（每个单词首字母大写）
+        const naturePattern = s.match(
+          /([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,3})\s+(\d+),\s*(\d+)[-–—](\d+)\s*\((\d{4})\)\s*\.?\s*$/
+        );
+
+        if (naturePattern) {
+          journal = naturePattern[1].trim();
+          volume = naturePattern[2];
+          firstPage = naturePattern[3];
+          lastPage = naturePattern[4];
+
+          // 找到期刊名在原字符串中的位置
+          const journalIdx = s.lastIndexOf(journal);
+          const beforeJournal = s.slice(0, journalIdx).trim();
+
+          // 移除末尾的句号
+          const cleanBefore = beforeJournal.replace(/\.\s*$/, '');
+
+          // 按句号分割作者和标题
+          const lastDotIdx = cleanBefore.lastIndexOf(". ");
+          if (lastDotIdx !== -1) {
+            const authorPart = cleanBefore.slice(0, lastDotIdx);
+            title = cleanBefore.slice(lastDotIdx + 2).trim();
+            authors = parseWesternAuthors(authorPart.replace(/\s+et\s+al\.?/gi, ""));
+          } else {
+            // 尝试找到作者和标题的分界
+            const parts = cleanBefore.split(/\.\s+/);
+            if (parts.length >= 2) {
+              authors = parseWesternAuthors(parts[0].replace(/\s+et\s+al\.?/gi, ""));
+              title = parts.slice(1).join(". ").trim();
+            }
+          }
+        } else {
+          // 尝试另一种 Nature 格式：没有页码范围
+          const naturePattern2 = s.match(
+            /([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,3})\s+(\d+),\s*(\d+)\s*\((\d{4})\)\s*\.?\s*$/
+          );
+          if (naturePattern2) {
+            journal = naturePattern2[1].trim();
+            volume = naturePattern2[2];
+            firstPage = naturePattern2[3];
+
+            const journalIdx = s.lastIndexOf(journal);
+            const beforeJournal = s.slice(0, journalIdx).trim();
+            const cleanBefore = beforeJournal.replace(/\.\s*$/, '');
+
+            const lastDotIdx = cleanBefore.lastIndexOf(". ");
+            if (lastDotIdx !== -1) {
+              const authorPart = cleanBefore.slice(0, lastDotIdx);
+              title = cleanBefore.slice(lastDotIdx + 2).trim();
+              authors = parseWesternAuthors(authorPart.replace(/\s+et\s+al\.?/gi, ""));
+            }
+          } else {
+            return parseGenericFormat(s);
+          }
+        }
+
+        return { title, journal, authors, volume, issue, firstPage, lastPage };
+      }
+
+      // ===== Science 格式解析 =====
+      // 格式：J. A. Smith, Deep learning in medical imaging. Science 368, 1234-1238 (2020).
+      // 或：J. A. Smith et al., Title. Science 368, 1234 (2020).
+      function parseScienceFormat(s) {
+        let title = null,
+          journal = null,
+          authors = [],
+          volume = null,
+          issue = null;
+        let firstPage = null,
+          lastPage = null;
+
+        // Science 格式与 Nature 类似，但作者名通常是 "F. Lastname" 格式
+        // 匹配模式：Journal Volume, Pages (Year)
+        const sciencePattern = s.match(
+          /([A-Z][A-Za-z.\s&]+?)\s+(\d+),\s*(\d+)[-–—]?(\d+)?\s*\((\d{4})\)/
+        );
+
+        if (sciencePattern) {
+          journal = sciencePattern[1].trim();
+          volume = sciencePattern[2];
+          firstPage = sciencePattern[3];
+          lastPage = sciencePattern[4] || null;
+
+          // 找到期刊名在原字符串中的位置
+          const journalIdx = s.indexOf(sciencePattern[0]);
+          const beforeJournal = s.slice(0, journalIdx).trim();
+
+          // Science 格式：作者, 标题.
+          // 查找最后一个句号（标题结尾）
+          const lastDotIdx = beforeJournal.lastIndexOf(".");
+          if (lastDotIdx !== -1) {
+            const beforeDot = beforeJournal.slice(0, lastDotIdx).trim();
+
+            // 查找作者和标题的分界（通常是逗号后跟大写字母开头的标题）
+            // 模式：Authors, Title
+            const commaMatch = beforeDot.match(/^(.+?),\s+([A-Z][^,].*)$/);
+            if (commaMatch) {
+              authors = parseWesternAuthors(commaMatch[1].replace(/\s+et\s+al\.?/gi, ""));
+              title = commaMatch[2].trim();
+            } else {
+              // 尝试按句号分割
+              const parts = beforeDot.split(/\.\s+/);
+              if (parts.length >= 2) {
+                authors = parseWesternAuthors(parts[0].replace(/\s+et\s+al\.?/gi, ""));
+                title = parts.slice(1).join(". ").trim();
+              } else {
+                title = beforeDot;
+              }
+            }
+          }
+        } else {
+          return parseGenericFormat(s);
         }
 
         return { title, journal, authors, volume, issue, firstPage, lastPage };
@@ -2648,59 +3257,91 @@
         let firstPage = null,
           lastPage = null;
 
-        // 策略：按句号分割，启发式判断各部分
-        const parts = s.split(/\.\s+/);
+        // 0. 先移除末尾的 URL/DOI 链接
+        const cleanedS = s.replace(/\s*https?:\/\/[^\s]+\s*$/i, '').trim();
 
-        if (parts.length === 1) {
-          // 没有句号分割，尝试按逗号分析
-          return parseCommaSeparatedFormat(s);
+        // 0.1 检测是否是"期刊行"格式（如 APA 引用的第二行）
+        // 格式：Journal Name, Volume(Issue), Pages
+        const journalLineMatch = cleanedS.match(
+          /^([A-Z][A-Za-z\s&]+),\s*(\d+)\s*\((\d+)\)\s*,\s*(\d+)\s*[-–—]\s*(\d+)/
+        );
+        if (journalLineMatch) {
+          journal = journalLineMatch[1].trim();
+          volume = journalLineMatch[2];
+          issue = journalLineMatch[3];
+          firstPage = journalLineMatch[4];
+          lastPage = journalLineMatch[5];
+          // 这种情况下没有标题和作者
+          return { title, journal, authors, volume, issue, firstPage, lastPage };
         }
 
-        // 分析每个部分
-        const analyzed = parts.map(analyzePart);
-
-        // 找作者（通常是第一部分，且包含人名特征）
-        if (analyzed[0]?.type === "author" || looksLikeAuthors(parts[0])) {
-          authors = parseWesternAuthors(parts[0]);
+        // 1. 先提取期刊缩写模式（如 J. Comput. Phys. 225）
+        // 匹配：多个"单词+点"组合，后跟卷号
+        const journalAbbrMatch = cleanedS.match(
+          /([A-Z][a-z]*\.(?:\s*[A-Z][a-z]*\.)+)\s*(\d+)\s*(?:\((\d+)\))?/
+        );
+        if (journalAbbrMatch) {
+          journal = journalAbbrMatch[1].trim();
+          volume = journalAbbrMatch[2];
+          issue = journalAbbrMatch[3] || null;
         }
 
-        // 找标题（通常是最长的部分，或第二部分）
-        let maxLen = 0,
-          titleIdx = -1;
-        for (let i = 0; i < parts.length; i++) {
-          // 跳过作者部分和明显的期刊信息部分
-          if (i === 0 && authors.length > 0) continue;
-          if (/^\d+\s*\(?\d*\)?\s*[:;,]/.test(parts[i])) continue; // 卷期信息
-          if (parts[i].length > maxLen && !looksLikeJournal(parts[i])) {
-            maxLen = parts[i].length;
-            titleIdx = i;
+        // 2. 找到期刊在原字符串中的位置，提取期刊之前的部分
+        let beforeJournal = cleanedS;
+        if (journal) {
+          const journalIdx = cleanedS.indexOf(journal);
+          if (journalIdx > 0) {
+            beforeJournal = cleanedS.slice(0, journalIdx).trim();
+            // 移除末尾的句号
+            beforeJournal = beforeJournal.replace(/\.\s*$/, "");
           }
         }
-        if (titleIdx >= 0) {
-          title = parts[titleIdx].trim();
-        }
 
-        // 找期刊（通常在标题后，包含期刊特征）
-        for (let i = titleIdx + 1; i < parts.length; i++) {
-          if (looksLikeJournal(parts[i]) && !journal) {
-            const jMatch = parts[i].match(/^([^,\d]+)/);
-            if (jMatch) {
-              journal = jMatch[1].trim();
+        // 3. 在 beforeJournal 中找到作者和标题的分界
+        // 策略：找到 "X. " 后面跟着 "大写字母开头的长单词（>=4字母）" 的位置
+        // 这通常是标题的开始（作者缩写后跟标题首词）
+        const titleStartMatch = beforeJournal.match(
+          /([A-Z])\.\s+([A-Z][a-z]{3,})/
+        );
+        if (titleStartMatch) {
+          const matchIdx = beforeJournal.indexOf(titleStartMatch[0]);
+          // 作者部分：从开头到匹配位置 + 单字母 + 点
+          const authorPart = beforeJournal
+            .slice(0, matchIdx + titleStartMatch[1].length + 1)
+            .trim();
+          // 标题部分：从长单词开始
+          const titlePart = beforeJournal
+            .slice(matchIdx + titleStartMatch[1].length + 2)
+            .trim();
+
+          authors = parseWesternAuthors(authorPart);
+          title = titlePart;
+        } else {
+          // 回退：按第一个句号+空格分割
+          const firstDotIdx = beforeJournal.indexOf(". ");
+          if (firstDotIdx > 0) {
+            authors = parseWesternAuthors(beforeJournal.slice(0, firstDotIdx));
+            title = beforeJournal.slice(firstDotIdx + 2);
+          } else {
+            // 没有期刊的情况，使用原来的分割逻辑
+            const parts = cleanedS.split(/\.\s+/).filter(p => !p.startsWith('http'));
+            if (parts.length >= 2) {
+              if (looksLikeAuthors(parts[0])) {
+                authors = parseWesternAuthors(parts[0]);
+                title = parts[1];
+              } else {
+                title = parts[0];
+              }
+              // 尝试从后续部分提取期刊
+              if (!journal && parts.length >= 3) {
+                const jMatch = parts[2].match(/^([^,\d]+)/);
+                if (jMatch && !jMatch[1].startsWith('http')) {
+                  journal = jMatch[1].trim();
+                }
+              }
+            } else {
+              title = beforeJournal;
             }
-            break;
-          }
-        }
-
-        // 如果还没找到标题，用第二部分
-        if (!title && parts.length >= 2) {
-          title = parts[1].trim();
-        }
-
-        // 如果没找到期刊，用第三部分
-        if (!journal && parts.length >= 3) {
-          const jMatch = parts[2].match(/^([^,\d]+)/);
-          if (jMatch) {
-            journal = jMatch[1].trim();
           }
         }
 
@@ -2795,7 +3436,24 @@
             // 每个部分可能有多个作者用分号分隔
             const semicolonParts = part.split(/;\s*/);
             for (const sp of semicolonParts) {
-              if (sp.trim()) authors.push(sp.trim());
+              // 处理 "Zhang, J., Liu, P., Zhang, F, Song, Q" 这种格式
+              // 策略：匹配 "Lastname, Initial(s)." 或 "Lastname, Initial(s)" 模式
+              // 使用正则匹配每个作者
+              const authorPattern = /([A-Z][a-z]+),\s*([A-Z][A-Za-z.]*(?:\s+[A-Z][A-Za-z.]*)*)/g;
+              let match;
+              let lastIndex = 0;
+              let foundAuthors = [];
+
+              while ((match = authorPattern.exec(sp)) !== null) {
+                foundAuthors.push(`${match[1]}, ${match[2]}`);
+                lastIndex = authorPattern.lastIndex;
+              }
+
+              if (foundAuthors.length > 0) {
+                authors.push(...foundAuthors);
+              } else if (sp.trim()) {
+                authors.push(sp.trim());
+              }
             }
           }
         } else {
@@ -2971,7 +3629,6 @@
         if (mailto) url.searchParams.set("mailto", mailto);
 
         if (p.title) url.searchParams.set("query.bibliographic", p.title);
-        if (p.journal) url.searchParams.set("query.container-title", p.journal);
         if (p.authors && p.authors[0])
           url.searchParams.set("query.author", p.authors[0]);
         if (p.year)
@@ -3020,9 +3677,7 @@
             ? 1
             : 0;
 
-        const workAuthors = (w.authorships || [])
-          .map((a) => a.author?.display_name || "")
-          .join(" ");
+        const workAuthors = w.authorships || [];
         const a = authorSimilarity(p.authors, workAuthors);
 
         const total =
@@ -3063,14 +3718,7 @@
         const j = journalSimilarity(p.journal, container);
         const y = p.year && issuedYear === p.year ? 1 : 0;
 
-        const crAuthors = (it.author || [])
-          .map((a) => {
-            const family = a.family || "";
-            const given = a.given || "";
-            return family ? (given ? `${given} ${family}` : family) : "";
-          })
-          .filter(Boolean)
-          .join(" ");
+        const crAuthors = it.author || [];
         const a = authorSimilarity(p.authors, crAuthors);
 
         const v =
@@ -3289,11 +3937,37 @@
         const oaDetails = oaBest?.bestDetails;
         const crDetails = crBest?.bestDetails;
 
+        // 获取综合评分详情（取两个数据源中较高的分数）
+        const getFieldScore = (field) => {
+          const oaFieldScore = oaDetails?.[field]?.score ?? 0;
+          const crFieldScore = crDetails?.[field]?.score ?? 0;
+          return Math.max(oaFieldScore, crFieldScore);
+        };
+
+        // 判断字段是否低分（< 0.5）并返回样式
+        const getLowScoreStyle = (field) => {
+          const score = getFieldScore(field);
+          return score < 0.5 ? 'color: var(--danger);' : '';
+        };
+
+        // 获取 OpenAlex 字段的低分样式
+        const getOaLowScoreStyle = (field) => {
+          const score = oaDetails?.[field]?.score ?? 0;
+          return score < 0.5 ? 'color: var(--danger);' : '';
+        };
+
+        // 获取 Crossref 字段的低分样式
+        const getCrLowScoreStyle = (field) => {
+          const score = crDetails?.[field]?.score ?? 0;
+          return score < 0.5 ? 'color: var(--danger);' : '';
+        };
+
         return `
     <div class="result-item" data-index="${index}">
       <div class="result-header" onclick="toggleResult(${index})">
         <div class="result-index">${index + 1}</div>
         <div class="result-title">${esc(parsed.title || raw.slice(0, 80))}</div>
+        <span class="format-badge">${esc(parsed.format || "通用")}</span>
         <div class="score-tooltip-wrapper result-score-wrapper" onclick="event.stopPropagation()">
           <div class="result-score ${verdict.level}">${
           verdict.text
@@ -3359,17 +4033,17 @@
                 ? `
               <div class="detail-grid">
                 <div class="detail-label">标题</div>
-                <div class="detail-value">${esc(oa.title || "-")}</div>
-                <div class="detail-label">来源</div>
-                <div class="detail-value">${esc(
+                <div class="detail-value" style="${getOaLowScoreStyle('title')}">${esc(oa.title || "-")}</div>
+                <div class="detail-label">期刊/出版社</div>
+                <div class="detail-value" style="${getOaLowScoreStyle('journal')}">${esc(
                   oa.primary_location?.source?.display_name || "-"
                 )}</div>
                 <div class="detail-label">年份</div>
-                <div class="detail-value">${esc(
+                <div class="detail-value" style="${getOaLowScoreStyle('year')}">${esc(
                   oa.publication_year || "-"
                 )}</div>
                 <div class="detail-label">卷期页</div>
-                <div class="detail-value">${esc(
+                <div class="detail-value" style="${getOaLowScoreStyle('volume')}${getOaLowScoreStyle('firstPage')}">${esc(
                   oa.biblio?.volume || "-"
                 )}(${esc(oa.biblio?.issue || "-")}):${esc(
                     oa.biblio?.first_page || "-"
@@ -3401,19 +4075,19 @@
                 ? `
               <div class="detail-grid">
                 <div class="detail-label">标题</div>
-                <div class="detail-value">${esc(
+                <div class="detail-value" style="${getCrLowScoreStyle('title')}">${esc(
                   (cr.title && cr.title[0]) || "-"
                 )}</div>
-                <div class="detail-label">期刊</div>
-                <div class="detail-value">${esc(
+                <div class="detail-label">期刊/出版社</div>
+                <div class="detail-value" style="${getCrLowScoreStyle('journal')}">${esc(
                   (cr["container-title"] && cr["container-title"][0]) || "-"
                 )}</div>
                 <div class="detail-label">年份</div>
-                <div class="detail-value">${esc(
+                <div class="detail-value" style="${getCrLowScoreStyle('year')}">${esc(
                   cr.issued?.["date-parts"]?.[0]?.[0] || "-"
                 )}</div>
                 <div class="detail-label">卷期页</div>
-                <div class="detail-value">${esc(cr.volume || "-")}(${esc(
+                <div class="detail-value" style="${getCrLowScoreStyle('volume')}${getCrLowScoreStyle('firstPage')}">${esc(cr.volume || "-")}(${esc(
                     cr.issue || "-"
                   )}):${esc(cr.page || "-")}</div>
                 <div class="detail-label">DOI</div>
@@ -3848,7 +4522,7 @@
             <div class="detail-value">${esc(
               (parsed.authors || []).join(", ") || "-"
             )}</div>
-            <div class="detail-label">期刊/出版社</div>
+            <div class="detail-label">期刊</div>
             <div class="detail-value">${esc(parsed.journal || "-")}</div>
             <div class="detail-label">年份</div>
             <div class="detail-value">${esc(parsed.year || "-")}</div>

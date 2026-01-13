@@ -85,6 +85,69 @@
         display: grid;
         grid-template-columns: 1fr 360px;
         gap: 20px;
+        align-items: stretch;
+      }
+
+      .input-section > div {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .input-section > div:first-child {
+        /* 左侧：textarea 区域 */
+        display: flex;
+        flex-direction: column;
+      }
+
+      .input-section > div:last-child {
+        /* 右侧：配置区域 */
+        justify-content: space-between;
+      }
+
+      .right-top {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+      }
+
+      .right-bottom {
+        margin-top: 16px;
+      }
+
+      /* 并发数控制样式 */
+      .concurrency-section {
+        margin-top: 12px;
+      }
+
+      .concurrency-control {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .concurrency-control input[type="number"] {
+        width: 70px;
+        padding: 6px 10px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--primary);
+        text-align: center;
+        background: var(--bg);
+        outline: none;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .concurrency-control input[type="number"]:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+      }
+
+      .concurrency-control input[type="number"]::-webkit-inner-spin-button,
+      .concurrency-control input[type="number"]::-webkit-outer-spin-button {
+        opacity: 1;
       }
 
       @media (max-width: 768px) {
@@ -124,6 +187,7 @@
       textarea {
         resize: vertical;
         min-height: 180px;
+        flex: 1;
       }
 
       .hint {
@@ -280,7 +344,46 @@
         display: flex;
         flex-wrap: wrap;
         gap: 10px;
-        margin-top: 16px;
+      }
+
+      /* 按钮 tooltip 样式 */
+      .btn-tooltip-wrapper {
+        position: relative;
+        display: inline-flex;
+      }
+
+      .btn-tooltip {
+        position: absolute;
+        bottom: calc(100% + 8px);
+        left: 50%;
+        transform: translateX(-50%);
+        background: #1e293b;
+        color: white;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 400;
+        white-space: nowrap;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.15s ease, visibility 0.15s ease;
+        z-index: 100;
+        pointer-events: none;
+      }
+
+      .btn-tooltip::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        border: 5px solid transparent;
+        border-top-color: #1e293b;
+      }
+
+      .btn-tooltip-wrapper:hover .btn-tooltip {
+        opacity: 1;
+        visibility: visible;
       }
 
       /* Progress Bar */
@@ -901,7 +1004,7 @@
         font-weight: 500;
         opacity: 0;
         transition: all 0.3s ease;
-        z-index: 1000;
+        z-index: 3000;
         box-shadow: 0 8px 24px 0 rgba(79, 70, 229, 0.4);
       }
 
@@ -1188,6 +1291,199 @@
         white-space: pre-wrap;
         word-break: break-all;
       }
+
+      /* AI 配置相关样式 */
+      .ai-config-section {
+        margin-top: 16px;
+        padding: 16px;
+        border: 1px solid rgba(139, 92, 246, 0.2);
+        border-radius: 12px;
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.05) 0%, rgba(167, 139, 250, 0.05) 100%);
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-height: 80px;
+      }
+
+      .ai-toggle {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 8px;
+      }
+
+      .ai-toggle input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        accent-color: #8b5cf6;
+        cursor: pointer;
+      }
+
+      .ai-toggle label {
+        margin: 0;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .ai-toggle .ai-badge {
+        background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);
+        color: white;
+        font-size: 10px;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-weight: 600;
+      }
+
+      .ai-toggle:has(input:disabled) {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      /* AI tooltip 样式 */
+      .ai-tooltip {
+        position: absolute;
+        bottom: calc(100% + 8px);
+        left: 50%;
+        transform: translateX(-50%);
+        background: #1e293b;
+        color: white;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        white-space: nowrap;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.15s ease, visibility 0.15s ease;
+        z-index: 100;
+        pointer-events: none;
+      }
+
+      .ai-tooltip::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        border: 5px solid transparent;
+        border-top-color: #1e293b;
+      }
+
+      .ai-toggle {
+        position: relative;
+      }
+
+      .ai-toggle:has(input:disabled):hover .ai-tooltip {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      .btn-ai-config {
+        background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);
+        color: white;
+        box-shadow: 0 4px 14px 0 rgba(139, 92, 246, 0.35);
+      }
+
+      .btn-ai-config:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px 0 rgba(139, 92, 246, 0.45);
+      }
+
+      .btn-ai-config:active {
+        transform: translateY(0);
+      }
+
+      .ai-config-form {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .ai-config-form .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .ai-config-form label {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text);
+        margin: 0;
+      }
+
+      .ai-config-form input,
+      .ai-config-form select {
+        padding: 10px 14px;
+        border: 2px solid var(--border);
+        border-radius: 10px;
+        font-size: 14px;
+        transition: all 0.2s ease;
+        background: var(--card-bg);
+      }
+
+      .ai-config-form input:focus,
+      .ai-config-form select:focus {
+        outline: none;
+        border-color: #8b5cf6;
+        box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+      }
+
+      .ai-config-form .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+
+      .ai-config-form .form-hint {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-top: 4px;
+      }
+
+      .ai-config-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 8px;
+      }
+
+      .ai-status {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        padding: 8px 12px;
+        border-radius: 8px;
+        margin-bottom: 16px;
+      }
+
+      .ai-status.configured {
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--success);
+        border: 1px solid rgba(16, 185, 129, 0.2);
+      }
+
+      .ai-status.not-configured {
+        background: rgba(245, 158, 11, 0.1);
+        color: var(--warning);
+        border: 1px solid rgba(245, 158, 11, 0.2);
+      }
+
+      .ai-status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+      }
+
+      .ai-status.configured .ai-status-dot {
+        background: var(--success);
+      }
+
+      .ai-status.not-configured .ai-status-dot {
+        background: var(--warning);
+      }
     </style>
   </head>
   <body>
@@ -1215,86 +1511,107 @@
           </div>
         </div>
         <div>
-          <label for="mailto">联系邮箱（可选）</label>
-          <input type="email" id="mailto" placeholder="you@example.com" />
-          <div class="hint">
-            提供邮箱可进入 OpenAlex/Crossref 的 polite pool，获得更稳定的响应。
+          <div class="right-top">
+            <div>
+              <label for="mailto">联系邮箱（可选）</label>
+              <input type="email" id="mailto" placeholder="you@example.com" />
+              <div class="hint">
+                提供邮箱可进入 OpenAlex/Crossref 的 polite pool，获得更稳定的响应。
+              </div>
+            </div>
+
+            <div class="concurrency-section">
+              <div class="concurrency-control">
+                <label for="concurrency">并发数</label>
+                <input type="number" id="concurrency" min="1" max="20" value="5" />
+              </div>
+              <div class="hint" style="margin-top: 4px;">
+                同时处理的请求数量，建议 3-5。过高可能触发 API 限流。
+              </div>
+            </div>
+
+            <!-- AI 配置区域 -->
+            <div class="ai-config-section">
+              <div class="ai-toggle" id="aiToggleWrapper">
+                <input type="checkbox" id="useAiParsing" disabled />
+                <label for="useAiParsing">
+                  使用 AI 智能解析
+                  <span class="ai-badge">AI</span>
+                </label>
+                <span class="ai-tooltip" id="aiTooltip">请先配置 AI API</span>
+              </div>
+              <div class="hint" style="margin-top: 0;">
+                启用后将使用 AI 辅助解析引用字段，提高复杂格式的识别准确率。
+                <a href="javascript:void(0)" id="openAiConfig" style="color: #8b5cf6; font-weight: 500;">配置 AI</a>
+              </div>
+            </div>
           </div>
 
-          <div class="actions">
-            <button
-              id="run"
-              class="btn btn-primary"
-              title="调用 OpenAlex 和 Crossref API 校验引用真实性"
-            >
-              开始校验
-            </button>
-            <button
-              id="extractBib"
-              class="btn btn-extract"
-              title="直接解析引用生成 BibTeX，不调用 API"
-            >
-              生成 BibTeX
-            </button>
-            <button id="clear" class="btn btn-clear" title="清空输入和结果">
-              清空
-            </button>
-          </div>
+          <div class="right-bottom">
+            <div class="actions">
+              <span class="btn-tooltip-wrapper">
+                <button id="run" class="btn btn-primary">开始校验</button>
+                <span class="btn-tooltip">调用 OpenAlex 和 Crossref API 校验引用真实性</span>
+              </span>
+              <span class="btn-tooltip-wrapper">
+                <button id="extractBib" class="btn btn-extract">生成 BibTeX</button>
+                <span class="btn-tooltip">直接解析引用生成 BibTeX，不调用 API</span>
+              </span>
+              <span class="btn-tooltip-wrapper">
+                <button id="clear" class="btn btn-clear">清空</button>
+                <span class="btn-tooltip">清空输入和结果</span>
+              </span>
+            </div>
 
-          <div class="helper-btns">
-            <button
-              id="showFormatGuide"
-              class="btn btn-success btn-small"
-              title="查看支持的格式"
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.5"
-              >
-                <path
-                  d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
-                ></path>
-                <polyline points="14 2 14 8 20 8"></polyline>
-                <line x1="16" y1="13" x2="8" y2="13"></line>
-                <line x1="16" y1="17" x2="8" y2="17"></line>
-                <polyline points="10 9 9 9 8 9"></polyline>
-              </svg>
-              格式示例
-            </button>
-            <button
-              id="showScoreRules"
-              class="btn btn-info btn-small"
-              title="查看打分标准"
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.5"
-              >
-                <circle cx="12" cy="12" r="10"></circle>
-                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
-                <line x1="12" y1="17" x2="12.01" y2="17"></line>
-              </svg>
-              打分标准
-            </button>
-            <button
-              id="feedback"
-              class="btn btn-github btn-small"
-              title="反馈问题"
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
+            <div class="helper-btns">
+            <span class="btn-tooltip-wrapper">
+              <button id="showFormatGuide" class="btn btn-success btn-small">
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                >
+                  <path
+                    d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                  ></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
+                  <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+                格式示例
+              </button>
+              <span class="btn-tooltip">查看支持的格式</span>
+            </span>
+            <span class="btn-tooltip-wrapper">
+              <button id="showScoreRules" class="btn btn-info btn-small">
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                >
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                打分标准
+              </button>
+              <span class="btn-tooltip">查看打分标准</span>
+            </span>
+            <span class="btn-tooltip-wrapper">
+              <button id="feedback" class="btn btn-github btn-small">
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
                 stroke-width="2.5"
               >
                 <path
@@ -1302,7 +1619,10 @@
                 ></path>
               </svg>
               问题反馈
-            </button>
+              </button>
+              <span class="btn-tooltip">反馈问题</span>
+            </span>
+          </div>
           </div>
         </div>
       </div>
@@ -1344,35 +1664,41 @@
         <div class="export-option active" data-value="all">全部</div>
         <div class="export-option" data-value="high">高可信</div>
       </div>
-      <button id="exportBib" class="btn btn-primary" title="下载 BibTeX 文件">
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2.5"
-        >
-          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path>
-          <polyline points="7 10 12 15 17 10"></polyline>
-          <line x1="12" y1="15" x2="12" y2="3"></line>
-        </svg>
-        下载 BibTeX
-      </button>
-      <button id="copyBib" class="btn btn-copy" title="复制 BibTeX 到剪贴板">
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2.5"
-        >
-          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-          <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path>
-        </svg>
-        复制 BibTeX
-      </button>
+      <span class="btn-tooltip-wrapper">
+        <button id="exportBib" class="btn btn-primary">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+          >
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          下载 BibTeX
+        </button>
+        <span class="btn-tooltip">下载 BibTeX 文件</span>
+      </span>
+      <span class="btn-tooltip-wrapper">
+        <button id="copyBib" class="btn btn-copy">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+          >
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path>
+          </svg>
+          复制 BibTeX
+        </button>
+        <span class="btn-tooltip">复制 BibTeX 到剪贴板</span>
+      </span>
     </div>
 
     <div id="results"></div>
@@ -1664,7 +1990,107 @@
       </div>
     </div>
 
+    <!-- AI 配置弹窗 -->
+    <div id="aiConfigModal" class="modal-overlay">
+      <div class="modal" style="max-width: 500px">
+        <div
+          class="modal-header"
+          style="background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)"
+        >
+          <h3>🤖 AI 智能解析配置</h3>
+          <button class="modal-close" onclick="closeAiConfigModal()">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div id="aiConfigStatus" class="ai-status not-configured">
+            <span class="ai-status-dot"></span>
+            <span>未配置 API</span>
+          </div>
+
+          <div class="ai-config-form">
+            <div class="form-group">
+              <label for="aiBaseUrl">API Base URL</label>
+              <input
+                type="text"
+                id="aiBaseUrl"
+                placeholder="https://api.openai.com/v1"
+              />
+              <div class="form-hint">OpenAI 兼容格式的 API 地址</div>
+            </div>
+
+            <div class="form-group">
+              <label for="aiApiKey">API Key</label>
+              <input
+                type="password"
+                id="aiApiKey"
+                placeholder="sk-..."
+              />
+              <div class="form-hint">API 密钥，将安全存储在浏览器本地</div>
+            </div>
+
+            <div class="form-group">
+              <label for="aiModel">模型</label>
+              <input
+                type="text"
+                id="aiModel"
+                placeholder="gpt-4o-mini"
+                value="gpt-4o-mini"
+              />
+              <div class="form-hint">推荐使用 gpt-4o-mini 或 deepseek-chat</div>
+            </div>
+
+            <div class="form-group">
+              <label for="aiTemperature">温度 (Temperature)</label>
+              <input
+                type="range"
+                id="aiTemperature"
+                min="0"
+                max="1"
+                step="0.1"
+                value="0.1"
+                style="width: 100%"
+              />
+              <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted);">
+                <span>精确 (0)</span>
+                <span id="aiTempValue">0.1</span>
+                <span>创意 (1)</span>
+              </div>
+              <div class="form-hint">建议使用较低温度以获得稳定的解析结果</div>
+            </div>
+
+            <div class="ai-config-actions">
+              <button class="btn btn-primary" onclick="saveAiConfig()">
+                保存配置
+              </button>
+              <button class="btn btn-secondary" onclick="testAiConfig()">
+                测试连接
+              </button>
+              <button class="btn btn-clear" onclick="clearAiConfig()">
+                清除配置
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <script>
+      /** ---------- AI 配置常量 ---------- */
+      const AI_CONFIG_KEY = "citation_checker_ai_config";
+      const AI_ENABLED_KEY = "citation_checker_ai_enabled";
+      const CONCURRENCY_KEY = "citation_checker_concurrency";
+
       /** ---------- 工具函数 ---------- */
       function norm(s) {
         return (s || "")
@@ -2437,6 +2863,9 @@
         // Nature/Science 格式：Journal Volume, Pages (Year)
         const hasNatureScienceStyle =
           /[A-Z][A-Za-z.\s&]+\s+\d+,\s*\d+[-–—]?\d*\s*\(\d{4}\)/.test(s);
+        // arXiv 格式检测：包含 arXiv 或 arxiv.org
+        const hasArxivStyle =
+          /arXiv/i.test(s) || /arxiv\.org/i.test(s) || /\d{4}\.\d{4,5}/.test(s);
 
         let title = null;
         let journal = null;
@@ -2463,6 +2892,15 @@
           firstPage = result.firstPage;
           lastPage = result.lastPage;
           publisher = result.publisher;
+        } else if (hasArxivStyle) {
+          // ===== arXiv 格式解析 =====
+          // 优先处理 arXiv 引用，避免被其他格式误解析
+          format = "arXiv";
+          const result = parseArxivFormat(s);
+          title = result.title;
+          journal = result.journal;
+          authors = result.authors;
+          // arXiv 预印本不提取卷期页码
         } else if (hasHarvardStyle) {
           // ===== Harvard 格式解析 =====
           // 格式：Smith, J.A. (2020) Title. Journal, Vol(Issue), pp. Pages.
@@ -2505,17 +2943,6 @@
           // 格式：A. Author, "Title," Journal, vol. X, no. X, pp. X-X, Year.
           format = "IEEE";
           const result = parseIEEEFormat(s);
-          title = result.title;
-          journal = result.journal;
-          authors = result.authors;
-          volume = result.volume;
-          issue = result.issue;
-          firstPage = result.firstPage;
-          lastPage = result.lastPage;
-        } else if (hasQuotedTitle) {
-          // ===== 带引号标题的通用格式 =====
-          format = "引号标题";
-          const result = parseQuotedTitleFormat(s);
           title = result.title;
           journal = result.journal;
           authors = result.authors;
@@ -2587,8 +3014,8 @@
 
         // =========== 后处理和补充提取 ===========
 
-        // 如果还没有提取到卷期页码，使用通用正则
-        if (!volume || !firstPage) {
+        // 如果还没有提取到卷期页码，使用通用正则（arXiv 格式跳过）
+        if (format !== "arXiv" && (!volume || !firstPage)) {
           const extracted = extractVolumeIssuePage(s);
           if (!volume && extracted.volume) volume = extracted.volume;
           if (!issue && extracted.issue) issue = extracted.issue;
@@ -2741,6 +3168,67 @@
           lastPage,
           publisher,
         };
+      }
+
+      // ===== arXiv 格式解析 =====
+      // 支持多种 arXiv 引用格式：
+      // - MLA: Author, et al. "Title." arXiv, Year, arxiv.org/abs/XXXX.XXXXX.
+      // - APA: Author (Year). Title. arXiv preprint arXiv:XXXX.XXXXX.
+      // - 通用: Author. Title. arXiv:XXXX.XXXXX, Year.
+      function parseArxivFormat(s) {
+        let title = null,
+          journal = "arXiv",
+          authors = [];
+
+        // 移除 arXiv URL 和 ID 部分，避免干扰标题提取
+        const cleanedForTitle = s
+          .replace(/arxiv\.org\/abs\/\d{4}\.\d{4,5}/gi, "")
+          .replace(/arXiv:\s*\d{4}\.\d{4,5}/gi, "")
+          .replace(/arXiv\s+preprint\s+arXiv:\s*\d{4}\.\d{4,5}/gi, "")
+          .replace(/\d{4}\.\d{4,5}/g, "");
+
+        // 尝试提取引号内的标题
+        const quotedTitle = s.match(/"([^"]+)"/);
+        if (quotedTitle) {
+          title = quotedTitle[1].trim();
+
+          // 作者在引号前
+          const quoteStart = s.indexOf(quotedTitle[0]);
+          let beforeQuote = s.slice(0, quoteStart).trim();
+          beforeQuote = beforeQuote.replace(/[,，.。]\s*$/, "");
+          if (beforeQuote) {
+            authors = parseWesternAuthors(beforeQuote);
+          }
+        } else {
+          // 没有引号，尝试按句号分割
+          // 格式可能是：Author. Title. arXiv:XXXX.XXXXX.
+          const parts = cleanedForTitle.split(/\.\s+/).filter(p => p.trim());
+
+          if (parts.length >= 2) {
+            // 第一部分是作者
+            authors = parseWesternAuthors(parts[0]);
+
+            // 第二部分是标题（可能包含多个句号分隔的部分）
+            // 找到不是 "arXiv" 的部分作为标题
+            for (let i = 1; i < parts.length; i++) {
+              const part = parts[i].trim();
+              if (part && !/^arXiv/i.test(part) && part.length > 5) {
+                title = part;
+                break;
+              }
+            }
+          }
+        }
+
+        // 清理标题
+        if (title) {
+          title = title
+            .replace(/[,，.。]+$/, "")
+            .replace(/\s+arXiv.*$/i, "")
+            .trim();
+        }
+
+        return { title, journal, authors };
       }
 
       // 解析中文作者
@@ -3586,9 +4074,12 @@
           firstPage = null,
           lastPage = null;
 
-        // 模式1: Vol(Issue)
+        // 检测是否是 arXiv 引用（跳过 arXiv ID 的卷期提取）
+        const isArxivRef = /arXiv/i.test(s) || /arxiv\.org/i.test(s);
+
+        // 模式1: Vol(Issue) - 排除 arXiv ID 格式
         const vi1 = s.match(/(\d+)\s*\(\s*(\d+)\s*\)/);
-        if (vi1) {
+        if (vi1 && !isArxivRef) {
           volume = vi1[1];
           issue = vi1[2];
         }
@@ -3599,11 +4090,17 @@
         const vi3 = s.match(/no\.\s*(\d+)/i);
         if (vi3) issue = vi3[1];
 
-        // 模式3: Vol.Issue
-        const vi4 = s.match(/\b(\d+)\.(\d+)\b/);
-        if (vi4 && !volume) {
-          volume = vi4[1];
-          issue = vi4[2];
+        // 模式3: Vol.Issue - 排除 arXiv ID 格式（如 1706.03762）
+        if (!isArxivRef) {
+          const vi4 = s.match(/\b(\d+)\.(\d+)\b/);
+          if (vi4 && !volume) {
+            // 排除 arXiv ID 格式（4位数.4-5位数）
+            const p1 = vi4[1], p2 = vi4[2];
+            if (!(p1.length === 4 && p2.length >= 4 && p2.length <= 5)) {
+              volume = p1;
+              issue = p2;
+            }
+          }
         }
 
         // 页码模式
@@ -3700,13 +4197,10 @@
       }
 
       /** ---------- API 查询 ---------- */
-      async function queryOpenAlex(p, mailto) {
+      async function queryOpenAlex(p, mailto, isArxiv) {
         let url = new URL("https://api.openalex.org/works");
         url.searchParams.set("per-page", "10");  // 减少返回数量
         if (mailto) url.searchParams.set("mailto", mailto);
-
-        // 检测是否是 arXiv 相关引用
-        const isArxiv = /arXiv/i.test(p.raw) || /\d{4}\.\d{4,5}/.test(p.raw);
 
         if (p.doi) {
           url.searchParams.set("filter", `doi:${p.doi.toLowerCase()}`);
@@ -3725,7 +4219,12 @@
         return await r.json();
       }
 
-      async function queryCrossref(p, mailto) {
+      async function queryCrossref(p, mailto, isArxiv) {
+        // arXiv 引用跳过 Crossref 查询（Crossref 对 arXiv 预印本收录不全）
+        if (isArxiv && !p.doi) {
+          return { message: { items: [] } };
+        }
+
         // ✅ DOI：精确取回
         if (p.doi) {
           const doiEnc = encodeURIComponent(p.doi.toLowerCase());
@@ -3929,14 +4428,27 @@
 
       /** ---------- 单条校验 ---------- */
       async function verifySingle(raw, mailto) {
-        const p = parseCitation(raw);
+        // 检查是否启用 AI 解析
+        const useAi = localStorage.getItem(AI_ENABLED_KEY) === "true";
+        let p;
 
-        // 检测是否是 arXiv 相关引用
+        if (useAi) {
+          // 尝试 AI 解析
+          p = await parseWithAI(raw);
+          if (!p) {
+            // AI 解析失败，回退到规则解析
+            p = parseCitation(raw);
+          }
+        } else {
+          p = parseCitation(raw);
+        }
+
+        // 外部检测是否是 arXiv 相关引用（传入两个 query 函数）
         const isArxiv = /arXiv/i.test(raw) || /\d{4}\.\d{4,5}/.test(raw);
 
         const [oa, cr] = await Promise.all([
-          queryOpenAlex(p, mailto).catch((e) => ({ __error: e.message })),
-          queryCrossref(p, mailto).catch((e) => ({ __error: e.message })),
+          queryOpenAlex(p, mailto, isArxiv).catch((e) => ({ __error: e.message })),
+          queryCrossref(p, mailto, isArxiv).catch((e) => ({ __error: e.message })),
         ]);
 
         const oaItems = oa?.results || [];
@@ -4007,6 +4519,7 @@
           combined,
           combinedDetails,
           verdict: getVerdict(combined),
+          isArxiv,  // 标记是否为 arXiv 引用
         };
       }
 
@@ -4125,6 +4638,7 @@
           combined,
           combinedDetails,
           verdict,
+          isArxiv,
         } = result;
         const oa = oaBest?.best;
         const cr = crBest?.best;
@@ -4334,20 +4848,25 @@
                 }</div>
               </div>
             `
-                : `<div style="color:var(--text-muted);font-size:13px;padding:20px 0;text-align:center;">未找到匹配结果</div>`
+                : isArxiv
+                  ? `<div style="color:var(--text-muted);font-size:13px;padding:20px 0;text-align:center;">arXiv 预印本不检索 Crossref</div>`
+                  : `<div style="color:var(--text-muted);font-size:13px;padding:20px 0;text-align:center;">未找到匹配结果</div>`
             }
           </div>
         </div>
 
         <div class="detail-section">
           <div class="detail-actions">
-            <button class="btn btn-extract btn-small" onclick="copyBibTeX(${index}, this)" title="复制此条目的 BibTeX">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path>
-              </svg>
-              复制 BibTeX
-            </button>
+            <span class="btn-tooltip-wrapper">
+              <button class="btn btn-extract btn-small" onclick="copyBibTeX(${index}, this)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path>
+                </svg>
+                复制 BibTeX
+              </button>
+              <span class="btn-tooltip">复制此条目的 BibTeX</span>
+            </span>
           </div>
         </div>
       </div>
@@ -4447,51 +4966,83 @@
         // 清除提取模式，校验完成后将使用校验结果生成 BibTeX
         window.extractedMode = false;
 
-        const results = [];
+        // 获取并发数
+        const concurrency = parseInt(document.getElementById("concurrency").value, 10) || 5;
 
+        // 创建结果数组（保持顺序）
+        const results = new Array(lines.length).fill(null);
+        let completedCount = 0;
+
+        // 先创建所有占位符
         for (let i = 0; i < lines.length; i++) {
-          updateProgress(i, lines.length, `正在校验第 ${i + 1} 条...`);
-
-          // 显示处理中占位
-          resultsDiv.innerHTML += `<div class="processing-item" id="processing-${i}">正在校验：${esc(
+          resultsDiv.innerHTML += `<div class="processing-item" id="processing-${i}">等待校验：${esc(
             lines[i].slice(0, 60)
           )}...</div>`;
+        }
+
+        // 并发处理函数
+        async function processItem(index) {
+          const line = lines[index];
+
+          // 更新占位符状态
+          const placeholder = document.getElementById(`processing-${index}`);
+          if (placeholder) {
+            placeholder.textContent = `正在校验：${line.slice(0, 60)}...`;
+          }
 
           try {
-            const result = await verifySingle(lines[i], mailto);
-            results.push(result);
+            const result = await verifySingle(line, mailto);
+            results[index] = result;
 
             // 替换占位为真实结果
-            const placeholder = document.getElementById(`processing-${i}`);
             if (placeholder) {
-              placeholder.outerHTML = renderResult(result, i);
+              placeholder.outerHTML = renderResult(result, index);
             }
           } catch (e) {
-            results.push({
-              raw: lines[i],
-              parsed: parseCitation(lines[i]),
+            const errorResult = {
+              raw: line,
+              parsed: parseCitation(line),
               oaBest: null,
               crBest: null,
               oaScore: 0,
               crScore: 0,
               combined: 0,
               verdict: { level: "low", text: "错误", desc: e.message },
-            });
+            };
+            results[index] = errorResult;
 
-            const placeholder = document.getElementById(`processing-${i}`);
             if (placeholder) {
-              placeholder.outerHTML = renderResult(
-                results[results.length - 1],
-                i
-              );
+              placeholder.outerHTML = renderResult(errorResult, index);
             }
           }
 
-          // 添加小延迟避免请求过快
-          if (i < lines.length - 1) {
-            await new Promise((r) => setTimeout(r, 300));
-          }
+          completedCount++;
+          updateProgress(completedCount, lines.length, `已完成 ${completedCount}/${lines.length} 条`);
         }
+
+        // 并发控制器
+        async function runWithConcurrency(tasks, limit) {
+          const executing = new Set();
+
+          for (const task of tasks) {
+            const promise = task().then(() => {
+              executing.delete(promise);
+            });
+            executing.add(promise);
+
+            if (executing.size >= limit) {
+              await Promise.race(executing);
+            }
+          }
+
+          await Promise.all(executing);
+        }
+
+        // 创建任务列表
+        const tasks = lines.map((_, index) => () => processItem(index));
+
+        // 执行并发请求
+        await runWithConcurrency(tasks, concurrency);
 
         updateProgress(lines.length, lines.length, "校验完成");
         updateStats(results);
@@ -4659,11 +5210,13 @@
       }
 
       // 提取 BibTeX（不调用 API）
-      document.getElementById("extractBib").addEventListener("click", () => {
+      document.getElementById("extractBib").addEventListener("click", async () => {
+        const btn = document.getElementById("extractBib");
         const rawText = document.getElementById("citation").value;
         const resultsDiv = document.getElementById("results");
         const summaryDiv = document.getElementById("summary");
         const exportSection = document.getElementById("exportSection");
+        const progressDiv = document.getElementById("progress");
 
         const lines = rawText
           .split("\n")
@@ -4682,10 +5235,37 @@
           return;
         }
 
+        // 检查是否启用 AI 解析
+        const useAi = localStorage.getItem(AI_ENABLED_KEY) === "true";
+
+        // 如果启用 AI，显示进度条
+        if (useAi) {
+          btn.disabled = true;
+          const originalText = btn.textContent;
+          btn.innerHTML = `<span class="loading-spinner"></span> AI 解析中...`;
+          resultsDiv.innerHTML = "";
+          progressDiv.classList.add("active");
+          updateProgress(0, lines.length, "AI 解析中...");
+        }
+
         // 生成仅解析的结果（不调用 API）
-        const results = lines.map((line, i) => {
-          const parsed = parseCitation(line);
-          return {
+        const results = [];
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          let parsed;
+
+          if (useAi) {
+            updateProgress(i, lines.length, `AI 解析第 ${i + 1} 条...`);
+            parsed = await parseWithAI(line);
+            if (!parsed) {
+              // AI 解析失败，回退到规则解析
+              parsed = parseCitation(line);
+            }
+          } else {
+            parsed = parseCitation(line);
+          }
+
+          results.push({
             raw: line,
             parsed: parsed,
             oaBest: null,
@@ -4695,8 +5275,16 @@
             combined: 0,
             verdict: { level: "medium", text: "未校验", desc: "基于解析" },
             isExtracted: true, // 标记为仅提取，未校验
-          };
-        });
+          });
+        }
+
+        // 恢复按钮状态
+        if (useAi) {
+          btn.disabled = false;
+          btn.innerHTML = `生成 BibTeX`;
+          updateProgress(lines.length, lines.length, "解析完成");
+          setTimeout(() => progressDiv.classList.remove("active"), 1000);
+        }
 
         // 显示结果
         resultsDiv.innerHTML = results
@@ -4778,13 +5366,16 @@
 
         <div class="detail-section">
           <div class="detail-actions">
-            <button class="btn btn-extract btn-small" onclick="copyExtractedBib(${index}, this)" title="复制此条目的 BibTeX">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path>
-              </svg>
-              复制 BibTeX
-            </button>
+            <span class="btn-tooltip-wrapper">
+              <button class="btn btn-extract btn-small" onclick="copyExtractedBib(${index}, this)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path>
+                </svg>
+                复制 BibTeX
+              </button>
+              <span class="btn-tooltip">复制此条目的 BibTeX</span>
+            </span>
           </div>
         </div>
       </div>
@@ -4861,6 +5452,7 @@
         if (e.key === "Escape") {
           closeScoreRulesModal();
           closeFormatGuideModal();
+          closeAiConfigModal();
         }
       });
 
@@ -4880,6 +5472,252 @@
 
       window.closeScoreRulesModal = closeScoreRulesModal;
       window.closeFormatGuideModal = closeFormatGuideModal;
+
+      /** ---------- AI 配置功能 ---------- */
+
+      // 加载 AI 配置
+      function loadAiConfig() {
+        try {
+          const config = localStorage.getItem(AI_CONFIG_KEY);
+          return config ? JSON.parse(config) : null;
+        } catch (e) {
+          return null;
+        }
+      }
+
+      // 保存 AI 配置
+      function saveAiConfig() {
+        const baseUrl = document.getElementById("aiBaseUrl").value.trim();
+        const apiKey = document.getElementById("aiApiKey").value.trim();
+        const model = document.getElementById("aiModel").value.trim();
+        const temperature = parseFloat(document.getElementById("aiTemperature").value);
+
+        if (!baseUrl || !apiKey) {
+          showToast("请填写 API Base URL 和 API Key");
+          return;
+        }
+
+        const config = { baseUrl, apiKey, model: model || "gpt-4o-mini", temperature };
+        localStorage.setItem(AI_CONFIG_KEY, JSON.stringify(config));
+
+        updateAiConfigUI();
+        showToast("AI 配置已保存");
+      }
+
+      // 清除 AI 配置
+      function clearAiConfig() {
+        localStorage.removeItem(AI_CONFIG_KEY);
+        localStorage.removeItem(AI_ENABLED_KEY);
+
+        document.getElementById("aiBaseUrl").value = "";
+        document.getElementById("aiApiKey").value = "";
+        document.getElementById("aiModel").value = "gpt-4o-mini";
+        document.getElementById("aiTemperature").value = "0.1";
+        document.getElementById("aiTempValue").textContent = "0.1";
+
+        updateAiConfigUI();
+        showToast("AI 配置已清除");
+      }
+
+      // 测试 AI 连接
+      async function testAiConfig() {
+        const baseUrl = document.getElementById("aiBaseUrl").value.trim();
+        const apiKey = document.getElementById("aiApiKey").value.trim();
+        const model = document.getElementById("aiModel").value.trim() || "gpt-4o-mini";
+
+        if (!baseUrl || !apiKey) {
+          showToast("请先填写 API Base URL 和 API Key");
+          return;
+        }
+
+        showToast("正在测试连接...");
+
+        try {
+          const response = await fetch(`${baseUrl}/chat/completions`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+              model: model,
+              messages: [{ role: "user", content: "Hi" }],
+              max_tokens: 5
+            })
+          });
+
+          if (response.ok) {
+            showToast("连接成功！");
+          } else {
+            const error = await response.json().catch(() => ({}));
+            showToast(`连接失败: ${error.error?.message || response.status}`);
+          }
+        } catch (e) {
+          showToast(`连接失败: ${e.message}`);
+        }
+      }
+
+      // 更新 AI 配置 UI
+      function updateAiConfigUI() {
+        const config = loadAiConfig();
+        const statusEl = document.getElementById("aiConfigStatus");
+        const checkbox = document.getElementById("useAiParsing");
+        const tooltip = document.getElementById("aiTooltip");
+        const enabled = localStorage.getItem(AI_ENABLED_KEY) === "true";
+
+        if (config && config.apiKey) {
+          statusEl.className = "ai-status configured";
+          statusEl.innerHTML = `<span class="ai-status-dot"></span><span>已配置: ${config.model || "gpt-4o-mini"}</span>`;
+          checkbox.disabled = false;
+          checkbox.checked = enabled;
+          tooltip.style.display = "none";  // 已配置，隐藏 tooltip
+
+          // 填充表单
+          document.getElementById("aiBaseUrl").value = config.baseUrl || "";
+          document.getElementById("aiApiKey").value = config.apiKey || "";
+          document.getElementById("aiModel").value = config.model || "gpt-4o-mini";
+          document.getElementById("aiTemperature").value = config.temperature ?? 0.1;
+          document.getElementById("aiTempValue").textContent = config.temperature ?? 0.1;
+        } else {
+          statusEl.className = "ai-status not-configured";
+          statusEl.innerHTML = `<span class="ai-status-dot"></span><span>未配置 API</span>`;
+          checkbox.disabled = true;
+          checkbox.checked = false;
+          tooltip.style.display = "";  // 未配置，显示 tooltip
+        }
+      }
+
+      // 打开 AI 配置弹窗
+      function openAiConfigModal() {
+        updateAiConfigUI();
+        document.getElementById("aiConfigModal").classList.add("show");
+        document.body.style.overflow = "hidden";
+      }
+
+      // 关闭 AI 配置弹窗
+      function closeAiConfigModal() {
+        document.getElementById("aiConfigModal").classList.remove("show");
+        document.body.style.overflow = "";
+      }
+
+      // AI 解析引用
+      async function parseWithAI(raw) {
+        const config = loadAiConfig();
+        if (!config || !config.apiKey) {
+          return null;
+        }
+
+        const prompt = `请解析以下学术引用，提取字段并以 JSON 格式返回。只返回 JSON，不要其他内容。
+
+引用文本：
+${raw}
+
+请提取以下字段（如果无法识别则设为 null）：
+- title: 论文/书籍标题
+- authors: 作者列表（数组格式，如 ["张三", "李四"]）
+- year: 发表年份（数字）
+- journal: 期刊名或出版社
+- volume: 卷号
+- issue: 期号
+- firstPage: 起始页码
+- lastPage: 结束页码
+- doi: DOI 标识符（注意区分 arxiv id，arXiv ID 如 1706.03762 不是 DOI，arXiv 的 DOI 格式如 10.48550/arXiv.xxxx 也不要提取，仅识别明显的 doi 链接）
+
+返回格式示例：
+{"title": "...", "authors": ["..."], "year": 2020, "journal": "...", "volume": "1", "issue": "2", "firstPage": "10", "lastPage": "20", "doi": null}`;
+
+        try {
+          const response = await fetch(`${config.baseUrl}/chat/completions`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${config.apiKey}`
+            },
+            body: JSON.stringify({
+              model: config.model || "gpt-4o-mini",
+              messages: [{ role: "user", content: prompt }],
+              temperature: config.temperature ?? 0.1,
+              max_tokens: 500
+            })
+          });
+
+          if (!response.ok) {
+            console.error("AI 解析失败:", response.status);
+            return null;
+          }
+
+          const data = await response.json();
+          const content = data.choices?.[0]?.message?.content || "";
+
+          // 提取 JSON
+          const jsonMatch = content.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            return {
+              raw: raw,
+              title: parsed.title || null,
+              authors: Array.isArray(parsed.authors) ? parsed.authors : [],
+              year: parsed.year ? parseInt(parsed.year, 10) : null,
+              journal: parsed.journal || null,
+              volume: parsed.volume ? String(parsed.volume) : null,
+              issue: parsed.issue ? String(parsed.issue) : null,
+              firstPage: parsed.firstPage ? String(parsed.firstPage) : null,
+              lastPage: parsed.lastPage ? String(parsed.lastPage) : null,
+              doi: parsed.doi || null,
+              format: "AI 解析"
+            };
+          }
+        } catch (e) {
+          console.error("AI 解析错误:", e);
+        }
+
+        return null;
+      }
+
+      // 温度滑块事件
+      document.getElementById("aiTemperature").addEventListener("input", (e) => {
+        document.getElementById("aiTempValue").textContent = e.target.value;
+      });
+
+      // AI 复选框事件
+      document.getElementById("useAiParsing").addEventListener("change", (e) => {
+        localStorage.setItem(AI_ENABLED_KEY, e.target.checked ? "true" : "false");
+      });
+
+      // 打开配置链接
+      document.getElementById("openAiConfig").addEventListener("click", openAiConfigModal);
+
+      // AI 配置弹窗点击遮罩关闭
+      document.getElementById("aiConfigModal").addEventListener("click", (e) => {
+        if (e.target === e.currentTarget) {
+          closeAiConfigModal();
+        }
+      });
+
+      // 页面加载时初始化 AI 配置 UI
+      updateAiConfigUI();
+
+      // 初始化并发数配置
+      const savedConcurrency = localStorage.getItem(CONCURRENCY_KEY);
+      if (savedConcurrency) {
+        const val = parseInt(savedConcurrency, 10);
+        if (val >= 1 && val <= 20) {
+          document.getElementById("concurrency").value = val;
+        }
+      }
+
+      // 并发数改变时保存到 localStorage
+      document.getElementById("concurrency").addEventListener("change", (e) => {
+        const val = parseInt(e.target.value, 10);
+        if (val >= 1 && val <= 20) {
+          localStorage.setItem(CONCURRENCY_KEY, val);
+        }
+      });
+
+      window.closeAiConfigModal = closeAiConfigModal;
+      window.saveAiConfig = saveAiConfig;
+      window.clearAiConfig = clearAiConfig;
+      window.testAiConfig = testAiConfig;
     </script>
   </body>
 </html>

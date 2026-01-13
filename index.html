@@ -2047,7 +2047,6 @@
                 placeholder="gpt-4o-mini"
                 value="gpt-4o-mini"
               />
-              <div class="form-hint">推荐使用 gpt-4o-mini 或 deepseek-chat</div>
             </div>
 
             <div class="form-group">
@@ -5636,8 +5635,7 @@ ${raw}
             body: JSON.stringify({
               model: config.model || "gpt-4o-mini",
               messages: [{ role: "user", content: prompt }],
-              temperature: config.temperature ?? 0.1,
-              max_tokens: 500
+              temperature: config.temperature ?? 0.1
             })
           });
 

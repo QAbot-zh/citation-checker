@@ -890,14 +890,32 @@
         align-items: center;
         padding: 5px 0;
         border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        gap: 8px;
       }
 
-      .score-tooltip-row:last-child {
+      .score-tooltip-row.score-tooltip-header {
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.9);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        padding-bottom: 8px;
+        margin-bottom: 4px;
+      }
+
+      .score-tooltip-row.score-tooltip-header .score-tooltip-value {
+        background: transparent;
+        font-size: 10px;
+      }
+
+      .score-tooltip-row.score-tooltip-total {
         border-bottom: none;
         padding-top: 10px;
         margin-top: 6px;
         border-top: 1px solid rgba(255, 255, 255, 0.2);
         font-weight: 600;
+      }
+
+      .score-tooltip-row:last-child {
+        border-bottom: none;
       }
 
       .score-tooltip-label {
@@ -928,14 +946,26 @@
         background: rgba(248, 113, 113, 0.15);
       }
 
+      .score-badges {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+      }
+
       .score-inline {
-        font-size: 13px;
-        color: var(--text-muted);
+        font-size: 12px;
+        color: #0891b2;
         font-weight: 500;
-        background: var(--bg);
-        padding: 4px 10px;
+        background: rgba(8, 145, 178, 0.1);
+        padding: 3px 8px;
         border-radius: 6px;
-        border: 1px solid var(--border);
+        border: 1px solid rgba(8, 145, 178, 0.3);
+      }
+
+      .score-inline.ai {
+        color: #8b5cf6;
+        background: rgba(139, 92, 246, 0.1);
+        border-color: rgba(139, 92, 246, 0.3);
       }
 
       /* 折叠头部的 tooltip 特殊定位 */
@@ -1403,40 +1433,80 @@
       /* AI 配置相关样式 */
       .ai-config-section {
         margin-top: 16px;
-        padding: 16px;
-        border: 1px solid rgba(139, 92, 246, 0.2);
-        border-radius: 12px;
+        padding: 12px 14px;
+        border: 1px solid rgba(139, 92, 246, 0.25);
+        border-radius: 10px;
         background: linear-gradient(135deg, rgba(139, 92, 246, 0.05) 0%, rgba(167, 139, 250, 0.05) 100%);
-        flex: 1;
+      }
+
+      .ai-options {
         display: flex;
         flex-direction: column;
-        justify-content: center;
-        min-height: 80px;
+        gap: 8px;
+        margin-bottom: 10px;
       }
 
-      .ai-toggle {
+      .ai-config-footer {
         display: flex;
         align-items: center;
-        gap: 10px;
-        margin-bottom: 8px;
+        justify-content: space-between;
       }
 
-      .ai-toggle input[type="checkbox"] {
-        width: 18px;
-        height: 18px;
-        accent-color: #8b5cf6;
+      .ai-config-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 4px 10px;
+        border: 1px solid rgba(139, 92, 246, 0.3);
+        border-radius: 5px;
+        background: rgba(139, 92, 246, 0.1);
+        color: #8b5cf6;
         cursor: pointer;
+        transition: all 0.2s ease;
       }
 
-      .ai-toggle label {
-        margin: 0;
-        cursor: pointer;
+      .ai-config-btn:hover {
+        background: rgba(139, 92, 246, 0.2);
+        border-color: rgba(139, 92, 246, 0.5);
+      }
+
+      .ai-option {
         display: flex;
         align-items: center;
         gap: 6px;
       }
 
-      .ai-toggle .ai-badge {
+      .ai-option input[type="checkbox"] {
+        width: 15px;
+        height: 15px;
+        accent-color: #8b5cf6;
+        cursor: pointer;
+      }
+
+      .ai-option input[type="checkbox"]:disabled {
+        cursor: not-allowed;
+        opacity: 0.5;
+      }
+
+      .ai-option label {
+        margin: 0;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text);
+        cursor: pointer;
+      }
+
+      .ai-option input[type="checkbox"]:disabled + label {
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
+
+      .ai-option-desc {
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+
+      .ai-badge {
         background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);
         color: white;
         font-size: 10px;
@@ -1445,62 +1515,44 @@
         font-weight: 600;
       }
 
-      .ai-toggle:has(input:disabled) {
-        opacity: 0.6;
-        cursor: not-allowed;
-      }
-
-      /* AI tooltip 样式 */
-      .ai-tooltip {
-        position: absolute;
-        bottom: calc(100% + 8px);
-        left: 50%;
-        transform: translateX(-50%);
-        background: #1e293b;
-        color: white;
-        padding: 6px 12px;
-        border-radius: 6px;
-        font-size: 12px;
-        white-space: nowrap;
-        opacity: 0;
-        visibility: hidden;
-        transition: opacity 0.15s ease, visibility 0.15s ease;
-        z-index: 100;
-        pointer-events: none;
-      }
-
-      .ai-tooltip::after {
-        content: "";
-        position: absolute;
-        top: 100%;
-        left: 50%;
-        transform: translateX(-50%);
-        border: 5px solid transparent;
-        border-top-color: #1e293b;
-      }
-
-      .ai-toggle {
-        position: relative;
-      }
-
-      .ai-toggle:has(input:disabled):hover .ai-tooltip {
-        opacity: 1;
-        visibility: visible;
-      }
-
-      .btn-ai-config {
+      .ai-score-badge {
         background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);
         color: white;
-        box-shadow: 0 4px 14px 0 rgba(139, 92, 246, 0.35);
+        font-size: 9px;
+        padding: 1px 4px;
+        border-radius: 3px;
+        font-weight: 600;
+        margin-left: 4px;
+        vertical-align: middle;
       }
 
-      .btn-ai-config:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px 0 rgba(139, 92, 246, 0.45);
+      /* 配置区域底部的状态框（与齿轮按钮对齐） */
+      .ai-config-footer .ai-status {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        color: var(--text-muted);
+        padding: 4px 8px;
+        border: 1px solid var(--border);
+        border-radius: 5px;
+        background: var(--bg);
+        margin: 0;
       }
 
-      .btn-ai-config:active {
-        transform: translateY(0);
+      .ai-config-footer .ai-status-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #94a3b8;
+      }
+
+      .ai-config-footer .ai-status.configured .ai-status-dot {
+        background: #22c55e;
+      }
+
+      .ai-config-footer .ai-status.not-configured .ai-status-dot {
+        background: #f59e0b;
       }
 
       .ai-config-form {
@@ -1598,10 +1650,8 @@
     <div class="header">
       <h1>引用真伪快速校验</h1>
       <p>
-        通过 OpenAlex 与 Crossref
-        双数据源交叉验证，智能解析引用字段并评估可信度。支持 GB/T
-        7714、APA、MLA、IEEE、Chicago、Vancouver、Harvard、Nature、Science、OSA/Optica
-        等多种格式，自动识别并容错解析。<span style="color: var(--danger);">低可信度表示未找到匹配文献，可能是文献不存在或未被数据源收录，特别是中文文献。</span>
+        基于 OpenAlex 与 Crossref 双源交叉验证，智能解析引用字段并评估可信度，支持 GB/T 7714、APA、MLA、IEEE、Chicago 等多种主流格式，支持 AI 增强条目整理、字段解析、评分等环节。
+        <span style="color: var(--danger);">低可信度表示未匹配到文献，可能因文献不存在或未被数据源收录（中文文献尤甚），也可能因字段解析错误（尤其是标题项），欢迎反馈；中可信度建议查看评分细项定位低分项，并核对引用格式及文献信息是否更新。</span>
       </p>
     </div>
 
@@ -1616,7 +1666,7 @@
                 <span class="format-btn-tooltip">本地规则处理：标准化引号和破折号、智能合并换行。边界识别基于规则，复杂情况可能不可靠</span>
               </span>
               <span class="format-btn-wrapper">
-                <button id="aiFormatText" class="btn-ai-format-text">AI 整理</button>
+                <button id="aiFormatText" class="btn-ai-format-text">AI 整理引用条目</button>
                 <span class="format-btn-tooltip">调用 AI 智能识别：更准确地分离条目、处理复杂格式。需要先配置 AI API</span>
               </span>
             </div>
@@ -1652,17 +1702,29 @@
 
             <!-- AI 配置区域 -->
             <div class="ai-config-section">
-              <div class="ai-toggle" id="aiToggleWrapper">
-                <input type="checkbox" id="useAiParsing" disabled />
-                <label for="useAiParsing">
-                  使用 AI 智能解析
-                  <span class="ai-badge">AI</span>
-                </label>
-                <span class="ai-tooltip" id="aiTooltip">请先配置 AI API</span>
+              <div class="ai-options">
+                <div class="ai-option">
+                  <input type="checkbox" id="useAiParsing" disabled />
+                  <label for="useAiParsing">AI 解析</label>
+                  <span class="ai-option-desc">智能解析引用字段</span>
+                </div>
+                <div class="ai-option">
+                  <input type="checkbox" id="useAiScoring" disabled />
+                  <label for="useAiScoring">AI 评分</label>
+                  <span class="ai-option-desc">对比原始引用与检索结果</span>
+                </div>
               </div>
-              <div class="hint" style="margin-top: 0;">
-                启用后将使用 AI 辅助解析引用字段，提高复杂格式的识别准确率。
-                <a href="javascript:void(0)" id="openAiConfig" style="color: #8b5cf6; font-weight: 500;">配置 AI</a>
+              <div class="ai-config-footer">
+                <div id="aiConfigStatus" class="ai-status not-configured">
+                  <span class="ai-status-dot"></span>
+                  <span>未配置 API</span>
+                </div>
+                <button id="openAiConfig" class="ai-config-btn" title="配置 AI API">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3"></circle>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                  </svg>
+                </button>
               </div>
             </div>
           </div>
@@ -2143,7 +2205,7 @@
           </button>
         </div>
         <div class="modal-body">
-          <div id="aiConfigStatus" class="ai-status not-configured">
+          <div id="aiConfigModalStatus" class="ai-status not-configured">
             <span class="ai-status-dot"></span>
             <span>未配置 API</span>
           </div>
@@ -4628,10 +4690,159 @@
         return { level: "low", text: "低可信", desc: "可能伪造" };
       }
 
+      /** ---------- AI 评分 ---------- */
+      async function scoreWithAI(raw, parsed, oaBestItem, crBestItem, isArxiv) {
+        const config = loadAiConfig();
+        if (!config || !config.apiKey) return null;
+
+        // 构建 OpenAlex 最佳匹配的信息
+        let oaInfo = null;
+        if (oaBestItem) {
+          oaInfo = {
+            title: oaBestItem.title || "",
+            authors: (oaBestItem.authorships || []).map(a => a.author?.display_name || "").filter(Boolean),
+            journal: oaBestItem.primary_location?.source?.display_name || "",
+            year: oaBestItem.publication_year,
+            volume: oaBestItem.biblio?.volume || "",
+            issue: oaBestItem.biblio?.issue || "",
+            firstPage: oaBestItem.biblio?.first_page || "",
+            lastPage: oaBestItem.biblio?.last_page || "",
+          };
+        }
+
+        // 构建 Crossref 最佳匹配的信息
+        let crInfo = null;
+        if (crBestItem) {
+          crInfo = {
+            title: crBestItem.title?.[0] || "",
+            authors: (crBestItem.author || []).map(a => a.family ? `${a.given || ""} ${a.family}`.trim() : a.name || "").filter(Boolean),
+            journal: crBestItem["container-title"]?.[0] || "",
+            year: crBestItem.issued?.["date-parts"]?.[0]?.[0],
+            volume: crBestItem.volume || "",
+            issue: crBestItem.issue || "",
+            firstPage: crBestItem.page?.split("-")[0] || "",
+            lastPage: crBestItem.page?.split("-")[1] || "",
+          };
+        }
+
+        // 构建原始引用的解析信息
+        const parsedInfo = {
+          title: parsed.title || "",
+          authors: parsed.authors || [],
+          journal: parsed.journal || "",
+          year: parsed.year,
+          volume: parsed.volume || "",
+          issue: parsed.issue || "",
+          firstPage: parsed.firstPage || "",
+          lastPage: parsed.lastPage || "",
+        };
+
+        const fields = isArxiv
+          ? ["title", "author", "year"]
+          : ["title", "author", "journal", "year", "volume", "issue", "firstPage", "lastPage"];
+
+        const prompt = `你是一个学术引用校验专家。请对比原始引用与数据库检索结果，为每个字段评分。
+
+原始引用文本：
+${raw}
+
+解析后的字段：
+${JSON.stringify(parsedInfo, null, 2)}
+
+${oaInfo ? `OpenAlex 检索结果：
+${JSON.stringify(oaInfo, null, 2)}` : "OpenAlex：无匹配结果"}
+
+${crInfo ? `Crossref 检索结果：
+${JSON.stringify(crInfo, null, 2)}` : "Crossref：无匹配结果"}
+
+请为每个数据源的以下字段评分（0-1 之间的小数）：
+title, author, ${isArxiv ? 'year' : 'journal, year, volume, issue, firstPage, lastPage'}
+
+评分标准：
+- 1.0：完全匹配或语义等价
+- 0.8-0.99：高度相似，仅有细微差异（如标点、缩写）
+- 0.5-0.79：部分匹配，核心信息一致
+- 0.1-0.49：有一定关联但差异明显
+- 0：完全不匹配
+
+重要规则：
+- 如果原始引用中某字段为空或缺失，该字段必须评 0 分
+- 如果检索结果中某字段为空或缺失，该字段必须评 0 分
+- author 字段请评估作者列表的匹配程度
+
+请以 JSON 格式返回，格式如下：
+{
+  "openAlex": ${oaInfo ? `{ "title": 0.95, "author": 0.8, ... }` : "null"},
+  "crossref": ${crInfo ? `{ "title": 0.95, "author": 0.8, ... }` : "null"}
+}
+
+只返回 JSON，不要其他内容。`;
+
+        const response = await fetch(`${config.baseUrl}/chat/completions`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${config.apiKey}`
+          },
+          body: JSON.stringify({
+            model: config.model || "gpt-4o-mini",
+            messages: [{ role: "user", content: prompt }],
+            temperature: 0.1
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`AI API 错误: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const content = data.choices?.[0]?.message?.content || "";
+
+        // 解析 JSON 响应
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) return null;
+
+        const scores = JSON.parse(jsonMatch[0]);
+
+        // 计算加权总分
+        const weights = isArxiv
+          ? { title: 0.60, author: 0.25, year: 0.15 }
+          : { title: 0.45, author: 0.15, journal: 0.12, year: 0.10, volume: 0.06, issue: 0.04, firstPage: 0.04, lastPage: 0.04 };
+
+        const result = { openAlex: null, crossref: null };
+
+        if (scores.openAlex && oaInfo) {
+          let total = 0;
+          const details = {};
+          for (const field of fields) {
+            const score = scores.openAlex[field] ?? 0;
+            const weight = weights[field] || 0;
+            total += score * weight;
+            details[field] = { score, weight, weighted: score * weight };
+          }
+          result.openAlex = { total, details };
+        }
+
+        if (scores.crossref && crInfo) {
+          let total = 0;
+          const details = {};
+          for (const field of fields) {
+            const score = scores.crossref[field] ?? 0;
+            const weight = weights[field] || 0;
+            total += score * weight;
+            details[field] = { score, weight, weighted: score * weight };
+          }
+          result.crossref = { total, details };
+        }
+
+        return result;
+      }
+
       /** ---------- 单条校验 ---------- */
       async function verifySingle(raw, mailto) {
         // 检查是否启用 AI 解析
         const useAi = localStorage.getItem(AI_ENABLED_KEY) === "true";
+        const useAiScoring = localStorage.getItem("aiScoringEnabled") === "true";
         let p;
 
         if (useAi) {
@@ -4663,8 +4874,34 @@
         const oaBest = pickBest(oaItems, (w) => oaScoreFn(p, w));
         const crBest = pickBest(crItems, (it) => crScoreFn(p, it));
 
-        const oaScore = oaBest?.best ? oaBest.bestScore : 0;
-        const crScore = crBest?.best ? crBest.bestScore : 0;
+        let oaRuleScore = oaBest?.best ? oaBest.bestScore : 0;
+        let crRuleScore = crBest?.best ? crBest.bestScore : 0;
+        let aiScoringResult = null;
+
+        // 如果启用 AI 评分，调用 AI 进行评分
+        if (useAiScoring && (oaBest?.best || crBest?.best)) {
+          try {
+            aiScoringResult = await scoreWithAI(raw, p, oaBest?.best, crBest?.best, isArxiv);
+            if (aiScoringResult) {
+              // 保存 AI 评分详情
+              if (aiScoringResult.openAlex !== null && oaBest) {
+                oaBest.aiDetails = aiScoringResult.openAlex.details;
+                oaBest.aiScore = aiScoringResult.openAlex.total;
+              }
+              if (aiScoringResult.crossref !== null && crBest) {
+                crBest.aiDetails = aiScoringResult.crossref.details;
+                crBest.aiScore = aiScoringResult.crossref.total;
+              }
+            }
+          } catch (e) {
+            console.error("AI 评分失败:", e);
+            // AI 评分失败，继续使用规则评分
+          }
+        }
+
+        // 计算综合评分：使用 max(规则评分, AI评分) 作为各字段的最终分数
+        const oaScore = Math.max(oaRuleScore, oaBest?.aiScore || 0);
+        const crScore = Math.max(crRuleScore, crBest?.aiScore || 0);
 
         // 判断有效数据源数量（得分 > 0.1 视为有效匹配）
         const oaValid = oaScore > 0.1;
@@ -4739,17 +4976,20 @@
           combinedDetails,
           verdict: getVerdict(combined),
           isArxiv,  // 标记是否为 arXiv 引用
+          useAiScoring: aiScoringResult !== null,  // 标记是否使用了 AI 评分
         };
       }
 
       /** ---------- UI 渲染 ---------- */
       // 生成评分详情 tooltip HTML
-      function renderScoreTooltip(details) {
-        if (!details) return "";
+      // aiTotal 参数是 AI 评分函数计算的总分，确保和胶囊显示一致
+      function renderScoreTooltip(ruleDetails, aiDetails, aiTotal) {
+        if (!ruleDetails && !aiDetails) return "";
 
         const labels = {
           title: "标题",
           author: "作者",
+          authors: "作者",
           journal: "期刊",
           year: "年份",
           volume: "卷号",
@@ -4764,31 +5004,71 @@
           return "bad";
         };
 
-        let rows = "";
-        let total = 0;
-        for (const [key, val] of Object.entries(details)) {
-          total += val.weighted;
-          rows += `
-      <div class="score-tooltip-row">
-        <span class="score-tooltip-label">${labels[key]} (${(
-            val.weight * 100
-          ).toFixed(0)}%)</span>
-        <span class="score-tooltip-value ${getScoreClass(
-          val.score
-        )}">${val.score.toFixed(3)} → ${val.weighted.toFixed(3)}</span>
-      </div>
-    `;
-        }
-        rows += `
-    <div class="score-tooltip-row">
-      <span class="score-tooltip-label">总分</span>
-      <span class="score-tooltip-value ${getScoreClass(total)}">${total.toFixed(
-          3
-        )}</span>
-    </div>
-  `;
+        // 使用规则评分的字段顺序
+        const allKeys = Object.keys(ruleDetails || aiDetails || {});
 
-        return `<div class="score-tooltip">${rows}</div>`;
+        let rows = "";
+        let ruleTotal = 0;
+
+        // 表头
+        if (aiDetails) {
+          rows += `
+      <div class="score-tooltip-row score-tooltip-header">
+        <span class="score-tooltip-label">字段</span>
+        <span class="score-tooltip-value">规则</span>
+        <span class="score-tooltip-value">AI</span>
+      </div>`;
+        }
+
+        for (const key of allKeys) {
+          const ruleVal = ruleDetails?.[key];
+          const aiVal = aiDetails?.[key];
+          const label = labels[key] || key;
+          const weight = ruleVal?.weight || aiVal?.weight || 0;
+
+          const ruleScore = ruleVal?.score ?? 0;
+          const aiScore = aiVal?.score ?? 0;
+
+          ruleTotal += ruleScore * weight;
+
+          if (aiDetails) {
+            // 同时显示规则和 AI 评分
+            rows += `
+      <div class="score-tooltip-row">
+        <span class="score-tooltip-label">${label} (${(weight * 100).toFixed(0)}%)</span>
+        <span class="score-tooltip-value ${getScoreClass(ruleScore)}">${ruleScore.toFixed(2)}</span>
+        <span class="score-tooltip-value ${aiVal ? getScoreClass(aiScore) : ''}">${aiVal ? aiScore.toFixed(2) : '-'}</span>
+      </div>`;
+          } else {
+            // 只显示规则评分
+            rows += `
+      <div class="score-tooltip-row">
+        <span class="score-tooltip-label">${label} (${(weight * 100).toFixed(0)}%)</span>
+        <span class="score-tooltip-value ${getScoreClass(ruleScore)}">${ruleScore.toFixed(2)} × ${weight.toFixed(2)} = ${(ruleScore * weight).toFixed(3)}</span>
+      </div>`;
+          }
+        }
+
+        // 总分行
+        if (aiDetails) {
+          // 使用传入的 aiTotal，确保和胶囊显示一致
+          const displayAiTotal = aiTotal ?? 0;
+          rows += `
+      <div class="score-tooltip-row score-tooltip-total">
+        <span class="score-tooltip-label">总分</span>
+        <span class="score-tooltip-value ${getScoreClass(ruleTotal)}">${ruleTotal.toFixed(2)}</span>
+        <span class="score-tooltip-value ${getScoreClass(displayAiTotal)}">${displayAiTotal.toFixed(2)}</span>
+      </div>`;
+        } else {
+          rows += `
+      <div class="score-tooltip-row score-tooltip-total">
+        <span class="score-tooltip-label">总分</span>
+        <span class="score-tooltip-value ${getScoreClass(ruleTotal)}">${ruleTotal.toFixed(3)}</span>
+      </div>`;
+        }
+
+        const width = aiDetails ? "min-width: 280px;" : "";
+        return `<div class="score-tooltip" style="${width}">${rows}</div>`;
       }
 
       // 生成综合评分 tooltip HTML
@@ -4858,11 +5138,14 @@
           combinedDetails,
           verdict,
           isArxiv,
+          useAiScoring,
         } = result;
         const oa = oaBest?.best;
         const cr = crBest?.best;
-        const oaDetails = oaBest?.bestDetails;
-        const crDetails = crBest?.bestDetails;
+        const oaRuleDetails = oaBest?.bestDetails;
+        const crRuleDetails = crBest?.bestDetails;
+        const oaAiDetails = oaBest?.aiDetails;
+        const crAiDetails = crBest?.aiDetails;
 
         // 格式化 OpenAlex 作者
         const formatOaAuthors = (authorships) => {
@@ -4900,10 +5183,10 @@
           }).join(", ");
         };
 
-        // 获取综合评分详情（取两个数据源中较高的分数）
+        // 获取综合评分详情（取两个数据源中较高的分数，优先使用 AI 评分）
         const getFieldScore = (field) => {
-          const oaFieldScore = oaDetails?.[field]?.score ?? 0;
-          const crFieldScore = crDetails?.[field]?.score ?? 0;
+          const oaFieldScore = (oaAiDetails?.[field]?.score ?? oaRuleDetails?.[field]?.score) ?? 0;
+          const crFieldScore = (crAiDetails?.[field]?.score ?? crRuleDetails?.[field]?.score) ?? 0;
           return Math.max(oaFieldScore, crFieldScore);
         };
 
@@ -4913,15 +5196,15 @@
           return score < 0.5 ? 'color: var(--danger);' : '';
         };
 
-        // 获取 OpenAlex 字段的低分样式
+        // 获取 OpenAlex 字段的低分样式（优先使用 AI 评分）
         const getOaLowScoreStyle = (field) => {
-          const score = oaDetails?.[field]?.score ?? 0;
+          const score = (oaAiDetails?.[field]?.score ?? oaRuleDetails?.[field]?.score) ?? 0;
           return score < 0.5 ? 'color: var(--danger);' : '';
         };
 
-        // 获取 Crossref 字段的低分样式
+        // 获取 Crossref 字段的低分样式（优先使用 AI 评分）
         const getCrLowScoreStyle = (field) => {
-          const score = crDetails?.[field]?.score ?? 0;
+          const score = (crAiDetails?.[field]?.score ?? crRuleDetails?.[field]?.score) ?? 0;
           return score < 0.5 ? 'color: var(--danger);' : '';
         };
 
@@ -4934,8 +5217,8 @@
         <div class="score-tooltip-wrapper result-score-wrapper" onclick="event.stopPropagation()">
           <div class="result-score ${verdict.level}">${
           verdict.text
-        } ${combined.toFixed(2)}</div>
-          ${renderCombinedTooltip(combinedDetails, oaDetails, crDetails)}
+        } ${combined.toFixed(2)}${useAiScoring ? ' <span class="ai-score-badge">AI</span>' : ''}</div>
+          ${renderCombinedTooltip(combinedDetails, oaRuleDetails, crRuleDetails)}
         </div>
         <div class="result-toggle">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -4975,8 +5258,11 @@
             <h4>
               <div class="score-tooltip-wrapper">
                 <span class="source-badge openalex">OpenAlex</span>
-                <span class="score-inline">匹配分 ${oaScore.toFixed(3)}</span>
-                ${renderScoreTooltip(oaDetails)}
+                <span class="score-badges">
+                  <span class="score-inline">规则 ${oaBest?.bestScore?.toFixed(2) || '0.00'}</span>
+                  ${oaAiDetails ? `<span class="score-inline ai">AI ${(oaBest?.aiScore || 0).toFixed(2)}</span>` : ''}
+                </span>
+                ${renderScoreTooltip(oaRuleDetails, oaAiDetails, oaBest?.aiScore)}
               </div>
               ${
                 oa
@@ -5031,8 +5317,11 @@
             <h4>
               <div class="score-tooltip-wrapper">
                 <span class="source-badge crossref">Crossref</span>
-                <span class="score-inline">匹配分 ${crScore.toFixed(3)}</span>
-                ${renderScoreTooltip(crDetails)}
+                <span class="score-badges">
+                  <span class="score-inline">规则 ${crBest?.bestScore?.toFixed(2) || '0.00'}</span>
+                  ${crAiDetails ? `<span class="score-inline ai">AI ${(crBest?.aiScore || 0).toFixed(2)}</span>` : ''}
+                </span>
+                ${renderScoreTooltip(crRuleDetails, crAiDetails, crBest?.aiScore)}
               </div>
             </h4>
             ${
@@ -5954,6 +6243,7 @@ ${text}
       function clearAiConfig() {
         localStorage.removeItem(AI_CONFIG_KEY);
         localStorage.removeItem(AI_ENABLED_KEY);
+        localStorage.removeItem("aiScoringEnabled");
 
         document.getElementById("aiBaseUrl").value = "";
         document.getElementById("aiApiKey").value = "";
@@ -6007,16 +6297,32 @@ ${text}
       function updateAiConfigUI() {
         const config = loadAiConfig();
         const statusEl = document.getElementById("aiConfigStatus");
+        const modalStatusEl = document.getElementById("aiConfigModalStatus");
         const checkbox = document.getElementById("useAiParsing");
-        const tooltip = document.getElementById("aiTooltip");
+        const scoringCheckbox = document.getElementById("useAiScoring");
         const enabled = localStorage.getItem(AI_ENABLED_KEY) === "true";
+        const scoringEnabled = localStorage.getItem("aiScoringEnabled") === "true";
+
+        // 更新状态元素的辅助函数
+        const updateStatusEl = (el, isConfigured, modelName) => {
+          if (!el) return;
+          if (isConfigured) {
+            el.className = "ai-status configured";
+            el.innerHTML = `<span class="ai-status-dot"></span><span>已配置: ${modelName}</span>`;
+          } else {
+            el.className = "ai-status not-configured";
+            el.innerHTML = `<span class="ai-status-dot"></span><span>未配置 API</span>`;
+          }
+        };
 
         if (config && config.apiKey) {
-          statusEl.className = "ai-status configured";
-          statusEl.innerHTML = `<span class="ai-status-dot"></span><span>已配置: ${config.model || "gpt-4o-mini"}</span>`;
+          const modelName = config.model || "gpt-4o-mini";
+          updateStatusEl(statusEl, true, modelName);
+          updateStatusEl(modalStatusEl, true, modelName);
           checkbox.disabled = false;
           checkbox.checked = enabled;
-          tooltip.style.display = "none";  // 已配置，隐藏 tooltip
+          scoringCheckbox.disabled = false;
+          scoringCheckbox.checked = scoringEnabled;
 
           // 填充表单
           document.getElementById("aiBaseUrl").value = config.baseUrl || "";
@@ -6025,11 +6331,12 @@ ${text}
           document.getElementById("aiTemperature").value = config.temperature ?? 0.1;
           document.getElementById("aiTempValue").textContent = config.temperature ?? 0.1;
         } else {
-          statusEl.className = "ai-status not-configured";
-          statusEl.innerHTML = `<span class="ai-status-dot"></span><span>未配置 API</span>`;
+          updateStatusEl(statusEl, false);
+          updateStatusEl(modalStatusEl, false);
           checkbox.disabled = true;
           checkbox.checked = false;
-          tooltip.style.display = "";  // 未配置，显示 tooltip
+          scoringCheckbox.disabled = true;
+          scoringCheckbox.checked = false;
         }
       }
 
@@ -6067,10 +6374,9 @@ ${raw}
 - issue: 期号
 - firstPage: 起始页码
 - lastPage: 结束页码
-- doi: DOI 标识符（注意区分 arxiv id，arXiv ID 如 1706.03762 不是 DOI，arXiv 的 DOI 格式如 10.48550/arXiv.xxxx 也不要提取，仅识别明显的 doi 链接）
 
 返回格式示例：
-{"title": "...", "authors": ["..."], "year": 2020, "journal": "...", "volume": "1", "issue": "2", "firstPage": "10", "lastPage": "20", "doi": null}`;
+{"title": "...", "authors": ["..."], "year": 2020, "journal": "...", "volume": "1", "issue": "2", "firstPage": "10", "lastPage": "20"}`;
 
         try {
           const response = await fetch(`${config.baseUrl}/chat/completions`, {
@@ -6108,7 +6414,6 @@ ${raw}
               issue: parsed.issue ? String(parsed.issue) : null,
               firstPage: parsed.firstPage ? String(parsed.firstPage) : null,
               lastPage: parsed.lastPage ? String(parsed.lastPage) : null,
-              doi: parsed.doi || null,
               format: "AI 解析"
             };
           }
@@ -6127,6 +6432,11 @@ ${raw}
       // AI 复选框事件
       document.getElementById("useAiParsing").addEventListener("change", (e) => {
         localStorage.setItem(AI_ENABLED_KEY, e.target.checked ? "true" : "false");
+      });
+
+      // AI 评分复选框事件
+      document.getElementById("useAiScoring").addEventListener("change", (e) => {
+        localStorage.setItem("aiScoringEnabled", e.target.checked ? "true" : "false");
       });
 
       // 打开配置链接

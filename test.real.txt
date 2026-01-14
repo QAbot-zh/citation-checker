@@ -1,0 +1,8 @@
+Einstein, A. (1905). Zur Elektrodynamik bewegter Körper. Annalen der Physik, 322(10), 891-921.
+Turing, Alan M. "Computing Machinery and Intelligence." Mind, vol. 59, no. 236, Oct. 1950, pp. 433-460. 
+Watson JD, Crick FHC. Molecular structure of nucleic acids; a structure for deoxyribose nucleic acid. Nature. 1953 Apr 25;171(4356):737-8. 
+Chomsky, N. (1957). Syntactic Structures. The Hague: Mouton. 
+Hawking, S. W. (1975). Particle creation by black holes. Communications in Mathematical Physics, 43(3), 199-220.
+Kahneman, Daniel. Thinking, Fast and Slow. Farrar, Straus and Giroux, 2011. 
+Brown, T., Mann, B., Ryder, N., et al. (2020). Language Models are Few-Shot Learners. Advances in Neural Information Processing Systems, 33, 1877-1901. 
+Miller, George. "The Magical Number Seven, Plus or Minus Two: Some Limits on Our Capacity for Processing Information." Psychological Review, vol. 63, no. 2, 1956, pp. 81-97.

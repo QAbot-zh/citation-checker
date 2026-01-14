@@ -1,0 +1,7 @@
+Liu, Wei, and Alexander Berg. "Deep Learning for Generic Object Detection: A Survey." International Journal of Computer Vision, vol. 128, 2020, pp. 345-378.
+Zhang, H., Li, J., & Wang, L. (2022). Quantum Advantage in Machine Learning. Physical Review X, 12(4), 041015.
+Smith, John A., and Emily Rodriguez. The Impact of Social Media on Cognitive Development in Adolescents. Journal of Behavioral Studies, vol. 45, no. 2, 2024, pp. 112-130.
+Garcia, Maria. (2019). Climate Change Mitigation Strategies in Urban Environments. Environmental Science & Policy, 98, 45-56. 
+Thompson, Robert K. Artificial Consciousness: Philosophical and Technical Challenges. MIT Press, 2023.
+Lee, S., Kim, H., Park, Y. (2021). Advances in Neural Network Pruning Techniques. IEEE Transactions on Neural Networks and Learning Systems, 32(8), 3400-3415.
+Anderson, Lisa M. Exploring Exoplanet Atmospheres with Next-Generation Telescopes. Astrophysics Journal, 2025;912:56.

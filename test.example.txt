@@ -15,3 +15,7 @@ Thagard, P. (1990) 'Philosophy and machine learning', Canadian Journal of Philos
 Jumper, J. et al. Highly accurate protein structure prediction with AlphaFold. Nature 596, 583–589 (2021).
 
 Vaswani, Ashish, et al. "Attention Is All You Need." arXiv, 2017, arxiv.org/abs/1706.03762.
+
+J. Li, S. Yang, L. Guo, et al., "Anisotropic power spectrum of refractive-index fluctuation in hypersonic turbulence," Appl. Opt. 55, 9137–9144 (2016).
+
+D. Nobahar, S. Khorram, and J. D. Rodrigues, "Orbital angular momentum state variation of vortex beams propagating in a plasma sheath turbulence," Opt. Laser Technol. 159, 108911 (2023).

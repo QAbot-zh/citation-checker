@@ -70,6 +70,7 @@
         box-shadow: var(--shadow);
         margin-bottom: 20px;
         border: 1px solid var(--border);
+        overflow: visible;
       }
 
       .card-title {
@@ -86,17 +87,20 @@
         grid-template-columns: 1fr 360px;
         gap: 20px;
         align-items: stretch;
+        overflow: visible;
       }
 
       .input-section > div {
         display: flex;
         flex-direction: column;
+        overflow: visible;
       }
 
       .input-section > div:first-child {
         /* 左侧：textarea 区域 */
         display: flex;
         flex-direction: column;
+        overflow: visible;
       }
 
       .input-section > div:last-child {
@@ -162,6 +166,110 @@
         font-weight: 500;
         margin-bottom: 8px;
         color: var(--text);
+      }
+
+      .label-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        overflow: visible;
+      }
+
+      .label-row label {
+        margin-bottom: 0;
+      }
+
+      .btn-format-text {
+        padding: 4px 12px;
+        font-size: 12px;
+        font-weight: 500;
+        color: #059669;
+        background: rgba(5, 150, 105, 0.1);
+        border: 1px solid rgba(5, 150, 105, 0.3);
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .btn-format-text:hover {
+        background: rgba(5, 150, 105, 0.15);
+        border-color: rgba(5, 150, 105, 0.5);
+      }
+
+      .btn-format-text:active {
+        transform: scale(0.98);
+      }
+
+      .format-btns {
+        display: flex;
+        gap: 8px;
+        overflow: visible;
+      }
+
+      .format-btn-wrapper {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+      }
+
+      .btn-ai-format-text {
+        padding: 4px 12px;
+        font-size: 12px;
+        font-weight: 500;
+        color: #8b5cf6;
+        background: rgba(139, 92, 246, 0.1);
+        border: 1px solid rgba(139, 92, 246, 0.3);
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .btn-ai-format-text:hover {
+        background: rgba(139, 92, 246, 0.15);
+        border-color: rgba(139, 92, 246, 0.5);
+      }
+
+      .btn-ai-format-text:active {
+        transform: scale(0.98);
+      }
+
+      .btn-ai-format-text:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .format-btn-tooltip {
+        position: absolute;
+        top: calc(100% + 8px);
+        left: 0;
+        background: #1e293b;
+        color: white;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 400;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.15s ease, visibility 0.15s ease;
+        z-index: 100;
+        pointer-events: none;
+        width: 320px;
+        line-height: 1.4;
+      }
+
+      .format-btn-tooltip::before {
+        content: "";
+        position: absolute;
+        bottom: 100%;
+        left: 12px;
+        border: 5px solid transparent;
+        border-bottom-color: #1e293b;
+      }
+
+      .format-btn-wrapper:hover .format-btn-tooltip {
+        opacity: 1;
+        visibility: visible;
       }
 
       textarea,
@@ -1492,7 +1600,7 @@
       <p>
         通过 OpenAlex 与 Crossref
         双数据源交叉验证，智能解析引用字段并评估可信度。支持 GB/T
-        7714、APA、MLA、IEEE、Chicago、Vancouver、Harvard、Nature、Science
+        7714、APA、MLA、IEEE、Chicago、Vancouver、Harvard、Nature、Science、OSA/Optica
         等多种格式，自动识别并容错解析。<span style="color: var(--danger);">低可信度表示未找到匹配文献，可能是文献不存在或未被数据源收录，特别是中文文献。</span>
       </p>
     </div>
@@ -1500,13 +1608,25 @@
     <div class="card">
       <div class="input-section">
         <div>
-          <label for="citation">粘贴引用条目（支持多条，每行一条）</label>
+          <div class="label-row">
+            <label for="citation">粘贴引用条目（支持多条，每行一条）</label>
+            <div class="format-btns">
+              <span class="format-btn-wrapper">
+                <button id="formatText" class="btn-format-text">整理引用条目</button>
+                <span class="format-btn-tooltip">本地规则处理：标准化引号和破折号、智能合并换行。边界识别基于规则，复杂情况可能不可靠</span>
+              </span>
+              <span class="format-btn-wrapper">
+                <button id="aiFormatText" class="btn-ai-format-text">AI 整理</button>
+                <span class="format-btn-tooltip">调用 AI 智能识别：更准确地分离条目、处理复杂格式。需要先配置 AI API</span>
+              </span>
+            </div>
+          </div>
           <textarea
             id="citation"
             placeholder='在此粘贴引用条目，每行一条。支持多种格式：&#10;&#10;中文 GB/T 7714: 张三. 论文标题[J]. 期刊名, 2020, 10(2): 1-20.&#10;APA: Author, A. A. (2020). Title. Journal, 10(2), 1-20.&#10;IEEE: A. Author, "Title," Journal, vol. 10, no. 2, pp. 1-20, 2020.&#10;MLA: Author. "Title." Journal 10.2 (2020): 1-20.&#10;Vancouver: Author. Title. Journal. 2020;10(2):1-20.&#10;&#10;格式乱了也没关系，系统会智能识别！'
           ></textarea>
           <div class="hint">
-            💡 提示：支持 GB/T 7714、APA、MLA、IEEE、Chicago、Vancouver、Harvard、Nature、Science
+            💡 提示：支持 GB/T 7714、APA、MLA、IEEE、Chicago、Vancouver、Harvard、Nature、Science、OSA/Optica
             等格式。每行一条，格式不规范也能智能解析。
           </div>
         </div>
@@ -1953,6 +2073,16 @@
             </div>
             <div class="example-box">
               <code>J. A. Smith et al., Advances in gene therapy. Science 372, 456 (2021).</code>
+            </div>
+          </div>
+
+          <div class="format-example">
+            <h4>🔬 OSA/Optica 格式</h4>
+            <div class="example-box">
+              <code>J. A. Smith, B. C. Johnson, and D. E. Williams, "Title of the article," Appl. Opt. 52, 1234-1245 (2013).</code>
+            </div>
+            <div class="example-box">
+              <code>G. Lazarev, A. Hermerschmidt, S. Krüger, and S. Osten, "LCOS spatial light modulators: trends and applications," Opt. Express 20, 3344-3355 (2012).</code>
             </div>
           </div>
 
@@ -2798,8 +2928,8 @@
           .replace(/[\r\n\t]+/g, " ")
           .replace(/\s+/g, " ")
           .trim();
-        // 标准化各种引号
-        s = s.replace(/[""„‟«»]/g, '"').replace(/[''‚‛]/g, "'");
+        // 标准化各种引号（添加更多引号类型）
+        s = s.replace(/[""„‟«»＂〝〞「」『』]/g, '"').replace(/[''‚‛＇`´]/g, "'");
         // 标准化各种破折号/连字符
         s = s.replace(/[–—−‐‑‒―]/g, "-");
 
@@ -2859,6 +2989,17 @@
         const hasHarvardStyle =
           /^[A-Z][^()]+\s*\(\d{4}\)\s*[^.]/.test(s) &&  // 年份后不是句号
           (/,\s*pp?\.\s*\d+/i.test(s) || /,\s*\d+\s*\(\d+\)\s*,/.test(s));
+        // OSA/Optica 格式：Author, "Title," J. Abbr. Vol, Pages (Year).
+        // 特征：引号标题 + 期刊缩写（带点，如 Opt. Express, Appl. Opt., IEEE Photon. Technol. Lett.）
+        // 必须在 Nature 之前检测，因为 Nature 的正则也能匹配 OSA 格式的期刊部分
+        // 检测结束引号后面是否紧跟期刊缩写模式
+        // 支持：'," Appl. Opt. 52,' 或 '," IEEE Photon. Technol. Lett. 28,'
+        const osaJournalPattern = /[",]\s+[^",]+?\s+\d+(?:\(\d+\))?\s*,/;;
+        const osaEndPattern = /\d+(?:\(\d+\))?,\s*\d+(?:\s*[-–—]\s*\d+)?\s*\(\d{4}\)\s*\.?\s*$/;
+        const hasOSAStyle =
+          hasQuotedTitle &&
+          osaJournalPattern.test(s) &&
+          osaEndPattern.test(s);
         // Nature/Science 格式：Journal Volume, Pages (Year)
         const hasNatureScienceStyle =
           /[A-Z][A-Za-z.\s&]+\s+\d+,\s*\d+[-–—]?\d*\s*\(\d{4}\)/.test(s);
@@ -2966,6 +3107,19 @@
           // 格式：Author. Title. Journal. Year;Volume(Issue):Pages.
           format = "Vancouver";
           const result = parseVancouverFormat(s);
+          title = result.title;
+          journal = result.journal;
+          authors = result.authors;
+          volume = result.volume;
+          issue = result.issue;
+          firstPage = result.firstPage;
+          lastPage = result.lastPage;
+        } else if (hasOSAStyle) {
+          // ===== OSA/Optica 格式解析 =====
+          // 格式：J. A. Smith, "Title," Appl. Opt. 52, 1234-1245 (2013).
+          // 必须在 Nature/Science 之前，因为两者都匹配 "Journal Vol, Pages (Year)" 模式
+          format = "OSA/Optica";
+          const result = parseOSAFormat(s);
           title = result.title;
           journal = result.journal;
           authors = result.authors;
@@ -3228,6 +3382,64 @@
         }
 
         return { title, journal, authors };
+      }
+
+      // ===== OSA/Optica 格式解析 =====
+      // 格式：J. A. Smith, B. C. Johnson, and D. E. Williams, "Title," Appl. Opt. 52, 1234-1245 (2013).
+      // 或：G. Lazarev, A. Hermerschmidt, S. Krüger, and S. Osten, "LCOS spatial light modulators," Opt. Express 20, 3344-3355 (2012).
+      // 或：T. Wang, et al., "Title," IEEE Photon. Technol. Lett. 28, 3-6 (2016).
+      function parseOSAFormat(s) {
+        let title = null;
+        let journal = null;
+        let authors = [];
+        let volume = null;
+        let issue = null;
+        let firstPage = null;
+        let lastPage = null;
+        let year = null;
+
+        // ---------- 1. 提取标题 ----------
+        const titleMatch = s.match(/"([^"]+)"/);
+        if (!titleMatch) {
+          return { title, journal, authors, volume, issue, firstPage, lastPage, year };
+        }
+
+        title = titleMatch[1].trim();
+
+        const quoteStart = s.indexOf(titleMatch[0]);
+        const quoteEnd = quoteStart + titleMatch[0].length;
+
+        // ---------- 2. 作者（标题前） ----------
+        let beforeQuote = s.slice(0, quoteStart).trim();
+        beforeQuote = beforeQuote.replace(/[,，]\s*$/, "");
+        if (beforeQuote) {
+          authors = parseWesternAuthors(beforeQuote);
+        }
+
+        // ---------- 3. 标题后的主体 ----------
+        let afterQuote = s.slice(quoteEnd).trim();
+        afterQuote = afterQuote.replace(/^[,，]\s*/, "");
+
+        // ---------- 4. OSA 核心结构解析 ----------
+        // journal + volume(issue), pages (year)
+        const osaCorePattern =
+          /^(.+?)\s+(\d+)(?:\((\d+)\))?,\s*(\d+)(?:\s*[-–—]\s*(\d+))?\s*\((\d{4})\)\s*\.?\s*$/;
+
+        const m = afterQuote.match(osaCorePattern);
+        if (!m) {
+          // 理论上不应该进来（已通过 hasOSAStyle）
+          return { title, journal, authors, volume, issue, firstPage, lastPage, year };
+        }
+
+        // ---------- 5. 字段填充 ----------
+        journal   = m[1].trim();
+        volume    = m[2];
+        issue     = m[3] || null;
+        firstPage = m[4];
+        lastPage  = m[5] || null;
+        year      = m[6];
+
+        return { title, journal, authors, volume, issue, firstPage, lastPage, year };
       }
 
       // 解析中文作者
@@ -4206,10 +4418,8 @@
         } else {
           url.searchParams.set("search", p.title || p.raw);
           if (isArxiv) {
-            // arXiv 引用：使用来源过滤器，不使用年份过滤（预印本可能更新）
+            // arXiv 引用：使用来源过滤器
             url.searchParams.set("filter", "indexed_in:arxiv");
-          } else if (p.year) {
-            url.searchParams.set("filter", `publication_year:${p.year}`);
           }
         }
 
@@ -4246,13 +4456,6 @@
         if (mailto) url.searchParams.set("mailto", mailto);
 
         if (p.title) url.searchParams.set("query.bibliographic", p.title);
-        if (p.authors && p.authors[0])
-          url.searchParams.set("query.author", p.authors[0]);
-        if (p.year)
-          url.searchParams.set(
-            "filter",
-            `from-pub-date:${p.year}-01-01,until-pub-date:${p.year}-12-31`
-          );
 
         const r = await fetch(url.toString(), {
           headers: { Accept: "application/json" },
@@ -4470,7 +4673,24 @@
         let combined;
         let combinedDetails;
 
-        if (oaValid && crValid) {
+        // 若任一来源 > 0.8，直接取最高分作为最终评分，抑制错误源分数
+        if (oaScore > 0.8 || crScore > 0.8) {
+          const highSource = oaScore >= crScore ? "openAlex" : "crossref";
+          const highScore = Math.max(oaScore, crScore);
+          combined = highScore;
+          combinedDetails = {
+            openAlex: {
+              score: oaScore,
+              weight: highSource === "openAlex" ? 1.0 : 0,
+              weighted: highSource === "openAlex" ? oaScore : 0,
+            },
+            crossref: {
+              score: crScore,
+              weight: highSource === "crossref" ? 1.0 : 0,
+              weighted: highSource === "crossref" ? crScore : 0,
+            },
+          };
+        } else if (oaValid && crValid) {
           // 两个数据源都有匹配：加权计算
           combined = Math.max(oaScore, crScore) * 0.6 + Math.min(oaScore, crScore) * 0.4;
           combinedDetails = {
@@ -5063,6 +5283,233 @@
         document.getElementById("exportSection").classList.remove("active");
         window.currentResults = [];
       });
+
+      /** ---------- 文本整理功能 ---------- */
+      document.getElementById("formatText").addEventListener("click", () => {
+        const textarea = document.getElementById("citation");
+        const rawText = textarea.value;
+
+        if (!rawText.trim()) {
+          showToast("请先输入引用文本");
+          return;
+        }
+
+        const btn = document.getElementById("formatText");
+        const originalText = btn.textContent;
+
+        // 禁用按钮和文本区
+        btn.disabled = true;
+        btn.textContent = "整理中...";
+        textarea.disabled = true;
+
+        // 使用 setTimeout 让 UI 有时间更新
+        setTimeout(() => {
+          try {
+            const formatted = formatCitationText(rawText);
+            textarea.value = formatted;
+
+            // 统计处理结果
+            const lineCount = formatted.split("\n").filter(l => l.trim()).length;
+            showToast(`整理完成，共 ${lineCount} 条引用`);
+          } finally {
+            // 恢复按钮和文本区
+            btn.disabled = false;
+            btn.textContent = originalText;
+            textarea.disabled = false;
+          }
+        }, 10);
+      });
+
+      /**
+       * 智能整理引用文本
+       * 1. 中文引号转英文引号
+       * 2. 智能合并同一条目内的换行
+       * 3. 不同条目之间用空行分隔
+       * 4. 移除多余空白
+       */
+      function formatCitationText(text) {
+        // 1. 标准化引号
+        text = text
+          .replace(/[“”„‟«»＂〝〞]/g, '"')  // 各种双引号 → "
+          .replace(/[‘’‚‛＇`´]/g, "'");     // 各种单引号 → '
+
+        // 2. 标准化破折号
+        text = text.replace(/[–—−‐‑‒―]/g, "-");
+
+        // 3. 移除行首行尾空白，保留换行结构
+        let lines = text.split("\n").map(l => l.trim());
+
+        // 4. 智能识别条目边界并合并
+        const entries = [];
+        let currentEntry = [];
+
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+
+          // 空行表示条目分隔
+          if (!line) {
+            if (currentEntry.length > 0) {
+              entries.push(currentEntry.join(" "));
+              currentEntry = [];
+            }
+            continue;
+          }
+
+          // 检测是否是新条目的开始
+          const isNewEntry = detectNewEntry(line, currentEntry);
+
+          if (isNewEntry && currentEntry.length > 0) {
+            // 保存当前条目，开始新条目
+            entries.push(currentEntry.join(" "));
+            currentEntry = [line];
+          } else {
+            // 继续当前条目
+            currentEntry.push(line);
+          }
+        }
+
+        // 处理最后一个条目
+        if (currentEntry.length > 0) {
+          entries.push(currentEntry.join(" "));
+        }
+
+        // 5. 清理每个条目
+        const cleanedEntries = entries.map(entry => {
+          return entry
+            .replace(/\s+/g, " ")           // 多个空格合并
+            .replace(/\s*([,.:;])\s*/g, "$1 ")  // 标点后加空格
+            .replace(/\s+$/, "")            // 移除末尾空格
+            .trim();
+        }).filter(e => e.length > 0);
+
+        // 条目之间用空行分隔
+        return cleanedEntries.join("\n\n");
+      }
+
+      /**
+       * 检测一行是否是新条目的开始
+       */
+      function detectNewEntry(line, currentEntry) {
+        if (currentEntry.length === 0) return true;
+
+        // 1. 以序号开头：[1], 1., 1), (1), [1]
+        if (/^\s*[\[(]?\d+[\].):\s]/.test(line)) return true;
+
+        // 2. 以作者名开头的常见模式
+        // 中文作者：2-4个汉字开头
+        if (/^[\u4e00-\u9fa5]{2,4}[,，.]/.test(line)) return true;
+
+        // 西方作者：Lastname, F. 或 F. Lastname
+        if (/^[A-Z][a-z]+,\s*[A-Z]\./.test(line)) return true;
+        if (/^[A-Z]\.\s*[A-Z]?\.?\s*[A-Z][a-z]+/.test(line)) return true;
+
+        // 3. 检查当前条目是否已经"完整"
+        const currentText = currentEntry.join(" ");
+
+        // 如果当前条目以常见结束符结尾，新行可能是新条目
+        // 结束符：年份+句号、DOI、URL、页码范围+句号
+        const endsWithComplete =
+          /\(\d{4}\)\s*\.?\s*$/.test(currentText) ||           // (2020).
+          /\d{4}\s*\.?\s*$/.test(currentText) ||               // 2020.
+          /doi[:\s]+10\.\d+\/[^\s]+\s*\.?\s*$/i.test(currentText) ||  // DOI
+          /https?:\/\/[^\s]+\s*\.?\s*$/i.test(currentText) ||  // URL
+          /\d+\s*[-–—]\s*\d+\s*\.?\s*$/.test(currentText);     // 页码范围
+
+        if (endsWithComplete) {
+          // 当前条目看起来完整，检查新行是否像条目开头
+          // 以大写字母或中文开头
+          if (/^[A-Z]/.test(line) || /^[\u4e00-\u9fa5]/.test(line)) {
+            return true;
+          }
+        }
+
+        return false;
+      }
+
+      /** ---------- AI 文本整理功能 ---------- */
+      document.getElementById("aiFormatText").addEventListener("click", async () => {
+        const config = loadAiConfig();
+        if (!config || !config.apiKey) {
+          showToast("请先配置 AI API");
+          document.getElementById("aiConfigModal").classList.add("show");
+          return;
+        }
+
+        const textarea = document.getElementById("citation");
+        const rawText = textarea.value;
+
+        if (!rawText.trim()) {
+          showToast("请先输入引用文本");
+          return;
+        }
+
+        const btn = document.getElementById("aiFormatText");
+        const originalText = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = "整理中...";
+        textarea.disabled = true;
+
+        try {
+          const formatted = await formatCitationTextWithAI(rawText, config);
+          if (formatted) {
+            textarea.value = formatted;
+            const lineCount = formatted.split("\n").filter(l => l.trim()).length;
+            showToast(`AI 整理完成，共 ${lineCount} 条引用`);
+          } else {
+            showToast("AI 整理失败，请重试");
+          }
+        } catch (e) {
+          console.error("AI 整理错误:", e);
+          showToast("AI 整理失败: " + e.message);
+        } finally {
+          btn.disabled = false;
+          btn.textContent = originalText;
+          textarea.disabled = false;
+        }
+      });
+
+      /**
+       * 使用 AI 整理引用文本
+       */
+      async function formatCitationTextWithAI(text, config) {
+        const prompt = `你是一个学术引用格式整理助手。请整理以下从网页或 PDF 复制的引用文本。
+
+任务：
+1. 识别并分离每一条独立的引用条目
+2. 合并同一条目内被错误换行分割的内容
+3. 将中文引号（""''）转换为英文引号（""''）
+4. 移除序号（如 [1]、1.、(1) 等）
+5. 移除多余的空白和换行
+6. 每条引用单独一行，条目之间用一个空行分隔
+
+原始文本：
+${text}
+
+请直接返回整理后的引用列表，不要添加任何解释或说明。每条引用一行，条目之间空一行。`;
+
+        const response = await fetch(`${config.baseUrl}/chat/completions`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${config.apiKey}`
+          },
+          body: JSON.stringify({
+            model: config.model || "gpt-4o-mini",
+            messages: [{ role: "user", content: prompt }],
+            temperature: 0.1
+          })
+        });
+
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({}));
+          throw new Error(error.error?.message || `API 错误: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const content = data.choices?.[0]?.message?.content || "";
+
+        return content.trim();
+      }
 
       /** ---------- BibTeX 导出功能 ---------- */
       // 显示提示消息

@@ -1352,6 +1352,33 @@
         font-weight: 600;
       }
 
+      .score-table .enable-col {
+        text-align: center;
+        width: 60px;
+      }
+
+      .score-table .enable-col input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        cursor: pointer;
+        accent-color: var(--primary);
+      }
+
+      .score-table .enable-col input[type="checkbox"]:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
+
+      .score-table tr.field-disabled td {
+        opacity: 0.4;
+        text-decoration: line-through;
+      }
+
+      .score-table tr.field-disabled td.enable-col {
+        opacity: 1;
+        text-decoration: none;
+      }
+
       .verdict-table {
         margin-top: 20px;
       }
@@ -1964,69 +1991,80 @@
           </button>
         </div>
         <div class="modal-body">
-          <h4 style="margin: 0 0 12px 0; color: var(--text)">字段权重</h4>
+          <div style="display: flex; align-items: center; justify-content: space-between; margin: 0 0 12px 0;">
+            <h4 style="margin: 0; color: var(--text)">字段权重</h4>
+            <button id="enableAllFieldsBtn" class="btn btn-secondary" style="font-size: 12px; padding: 4px 12px;" onclick="enableAllFields()">全部启用</button>
+          </div>
           <table class="score-table">
             <thead>
               <tr>
+                <th class="enable-col">启用</th>
                 <th>字段</th>
                 <th>权重</th>
                 <th>计算方式</th>
               </tr>
             </thead>
             <tbody>
-              <tr>
+              <tr data-field="title">
+                <td class="enable-col"><input type="checkbox" id="field-enable-title" checked disabled title="标题为必选项"></td>
                 <td>标题</td>
-                <td class="weight">45%</td>
+                <td class="weight" id="field-weight-title">48%</td>
                 <td>Jaccard 相似度</td>
               </tr>
-              <tr>
+              <tr data-field="author">
+                <td class="enable-col"><input type="checkbox" id="field-enable-author" checked></td>
                 <td>作者</td>
-                <td class="weight">15%</td>
+                <td class="weight" id="field-weight-author">20%</td>
                 <td>姓氏匹配 + Jaccard</td>
               </tr>
-              <tr>
+              <tr data-field="journal">
+                <td class="enable-col"><input type="checkbox" id="field-enable-journal" checked></td>
                 <td>期刊</td>
-                <td class="weight">12%</td>
+                <td class="weight" id="field-weight-journal">12%</td>
                 <td>编辑距离 + 前缀匹配</td>
               </tr>
-              <tr>
+              <tr data-field="year">
+                <td class="enable-col"><input type="checkbox" id="field-enable-year" checked></td>
                 <td>年份</td>
-                <td class="weight">10%</td>
+                <td class="weight" id="field-weight-year">10%</td>
                 <td>精确匹配 (0/1)</td>
               </tr>
-              <tr>
+              <tr data-field="volume">
+                <td class="enable-col"><input type="checkbox" id="field-enable-volume" checked></td>
                 <td>卷号</td>
-                <td class="weight">6%</td>
+                <td class="weight" id="field-weight-volume">4%</td>
                 <td>精确匹配 (0/1)</td>
               </tr>
-              <tr>
+              <tr data-field="issue">
+                <td class="enable-col"><input type="checkbox" id="field-enable-issue" checked></td>
                 <td>期号</td>
-                <td class="weight">4%</td>
+                <td class="weight" id="field-weight-issue">2%</td>
                 <td>精确匹配 (0/1)</td>
               </tr>
-              <tr>
+              <tr data-field="firstPage">
+                <td class="enable-col"><input type="checkbox" id="field-enable-firstPage" checked></td>
                 <td>首页</td>
-                <td class="weight">4%</td>
+                <td class="weight" id="field-weight-firstPage">2%</td>
                 <td>精确匹配 (0/1)</td>
               </tr>
-              <tr>
+              <tr data-field="lastPage">
+                <td class="enable-col"><input type="checkbox" id="field-enable-lastPage" checked></td>
                 <td>末页</td>
-                <td class="weight">4%</td>
+                <td class="weight" id="field-weight-lastPage">2%</td>
                 <td>精确匹配 (0/1)</td>
               </tr>
             </tbody>
           </table>
 
           <h4 style="margin: 20px 0 12px 0; color: var(--text)">
-            综合评分公式
+            综合评分公式（赢者通吃）
           </h4>
           <div class="formula-box">
-            <code>综合分</code> = max(OA, CR) × <code>0.6</code> + min(OA, CR) ×
-            <code>0.4</code>
+            <code>综合分</code> = max(OA, CR)
             <div
-              style="margin-top: 8px; font-size: 11px; color: var(--text-muted)"
+              style="margin-top: 8px; font-size: 14px; color: var(--text)"
             >
-              OA = OpenAlex 得分，CR = Crossref 得分
+              OA = OpenAlex 得分，CR = Crossref 得分；取两个数据源中的最高分
             </div>
           </div>
 
@@ -2363,6 +2401,67 @@
       const AI_CONFIG_KEY = "citation_checker_ai_config";
       const AI_ENABLED_KEY = "citation_checker_ai_enabled";
       const CONCURRENCY_KEY = "citation_checker_concurrency";
+
+      /** ---------- 字段权重使能控制 ---------- */
+      const DISABLED_FIELDS_KEY = "disabledScoreFields";
+      const disabledFields = new Set(
+        JSON.parse(localStorage.getItem(DISABLED_FIELDS_KEY) || "[]")
+      );
+
+      // 原始权重定义
+      const BASE_WEIGHTS = {
+        title: 0.48, author: 0.20, journal: 0.12, year: 0.10,
+        volume: 0.04, issue: 0.02, firstPage: 0.02, lastPage: 0.02
+      };
+      const BASE_WEIGHTS_ARXIV = {
+        title: 0.60, author: 0.25, year: 0.15
+      };
+
+      function getActiveWeights(isArxiv) {
+        const base = isArxiv ? BASE_WEIGHTS_ARXIV : BASE_WEIGHTS;
+        const active = {};
+        let sum = 0;
+        for (const [field, w] of Object.entries(base)) {
+          if (!disabledFields.has(field)) {
+            active[field] = w;
+            sum += w;
+          }
+        }
+        // 归一化
+        if (sum > 0 && sum !== 1) {
+          for (const field of Object.keys(active)) {
+            active[field] = active[field] / sum;
+          }
+        }
+        return active;
+      }
+
+      function updateWeightDisplay() {
+        const weights = getActiveWeights(false);
+        const allFields = Object.keys(BASE_WEIGHTS);
+        for (const field of allFields) {
+          const el = document.getElementById("field-weight-" + field);
+          if (!el) continue;
+          if (disabledFields.has(field)) {
+            el.textContent = "-";
+          } else {
+            el.textContent = (weights[field] * 100).toFixed(1).replace(/\.0$/, "") + "%";
+          }
+        }
+      }
+
+      function enableAllFields() {
+        const fieldKeys = Object.keys(BASE_WEIGHTS);
+        disabledFields.clear();
+        localStorage.setItem(DISABLED_FIELDS_KEY, JSON.stringify([]));
+        for (const key of fieldKeys) {
+          const cb = document.getElementById("field-enable-" + key);
+          if (!cb || key === "title") continue;
+          cb.checked = true;
+          cb.closest("tr").classList.remove("field-disabled");
+        }
+        updateWeightDisplay();
+      }
 
       /** ---------- 工具函数 ---------- */
       function norm(s) {
@@ -4611,83 +4710,69 @@
       /** ---------- 打分 ---------- */
       // arXiv 专用评分（移除期刊、卷期页码）
       function scoreOpenAlexWorkArxiv(p, w) {
-        const t = jaccard(p.title, w.title || "");
-        const y = p.year && w.publication_year === p.year ? 1 : 0;
-        const workAuthors = w.authorships || [];
-        const a = authorSimilarity(p.authors, workAuthors);
-
-        // arXiv 权重：标题 60%，作者 25%，年份 15%
-        const total = 0.60 * t + 0.25 * a + 0.15 * y;
-
-        return {
-          total,
-          details: {
-            title: { score: t, weight: 0.60, weighted: 0.60 * t },
-            author: { score: a, weight: 0.25, weighted: 0.25 * a },
-            year: { score: y, weight: 0.15, weighted: 0.15 * y },
-          },
+        const scores = {
+          title: jaccard(p.title, w.title || ""),
+          year: p.year && w.publication_year === p.year ? 1 : 0,
+          author: authorSimilarity(p.authors, w.authorships || []),
         };
+
+        const weights = getActiveWeights(true);
+        let total = 0;
+        const details = {};
+        for (const [field, wt] of Object.entries(weights)) {
+          const s = scores[field] ?? 0;
+          total += wt * s;
+          details[field] = { score: s, weight: wt, weighted: wt * s };
+        }
+
+        return { total, details };
       }
 
       function scoreOpenAlexWork(p, w) {
-        const t = jaccard(p.title, w.title || "");
-        const y = p.year && w.publication_year === p.year ? 1 : 0;
-        const j = journalSimilarity(
-          p.journal,
-          w.primary_location?.source?.display_name || ""
-        );
-        const v =
-          p.volume &&
-          w.biblio?.volume &&
-          String(w.biblio.volume) === String(p.volume)
-            ? 1
-            : 0;
-        const i =
-          p.issue &&
-          w.biblio?.issue &&
-          String(w.biblio.issue) === String(p.issue)
-            ? 1
-            : 0;
-        const fp =
-          p.firstPage &&
-          w.biblio?.first_page &&
-          String(w.biblio.first_page) === String(p.firstPage)
-            ? 1
-            : 0;
-        const lp =
-          p.lastPage &&
-          w.biblio?.last_page &&
-          String(w.biblio.last_page) === String(p.lastPage)
-            ? 1
-            : 0;
-
-        const workAuthors = w.authorships || [];
-        const a = authorSimilarity(p.authors, workAuthors);
-
-        const total =
-          0.45 * t +
-          0.15 * a +
-          0.12 * j +
-          0.1 * y +
-          0.06 * v +
-          0.04 * i +
-          0.04 * fp +
-          0.04 * lp;
-
-        // 返回详细评分信息
-        return {
-          total,
-          details: {
-            title: { score: t, weight: 0.45, weighted: 0.45 * t },
-            author: { score: a, weight: 0.15, weighted: 0.15 * a },
-            journal: { score: j, weight: 0.12, weighted: 0.12 * j },
-            year: { score: y, weight: 0.1, weighted: 0.1 * y },
-            volume: { score: v, weight: 0.06, weighted: 0.06 * v },
-            issue: { score: i, weight: 0.04, weighted: 0.04 * i },
-            firstPage: { score: fp, weight: 0.04, weighted: 0.04 * fp },
-            lastPage: { score: lp, weight: 0.04, weighted: 0.04 * lp },
-          },
+        const scores = {
+          title: jaccard(p.title, w.title || ""),
+          year: p.year && w.publication_year === p.year ? 1 : 0,
+          journal: journalSimilarity(
+            p.journal,
+            w.primary_location?.source?.display_name || ""
+          ),
+          volume:
+            p.volume &&
+            w.biblio?.volume &&
+            String(w.biblio.volume) === String(p.volume)
+              ? 1
+              : 0,
+          issue:
+            p.issue &&
+            w.biblio?.issue &&
+            String(w.biblio.issue) === String(p.issue)
+              ? 1
+              : 0,
+          firstPage:
+            p.firstPage &&
+            w.biblio?.first_page &&
+            String(w.biblio.first_page) === String(p.firstPage)
+              ? 1
+              : 0,
+          lastPage:
+            p.lastPage &&
+            w.biblio?.last_page &&
+            String(w.biblio.last_page) === String(p.lastPage)
+              ? 1
+              : 0,
+          author: authorSimilarity(p.authors, w.authorships || []),
         };
+
+        const weights = getActiveWeights(false);
+        let total = 0;
+        const details = {};
+        for (const [field, wt] of Object.entries(weights)) {
+          const s = scores[field] ?? 0;
+          total += wt * s;
+          details[field] = { score: s, weight: wt, weighted: wt * s };
+        }
+
+        return { total, details };
       }
 
       // arXiv 专用 Crossref 评分（移除期刊、卷期页码）
@@ -4695,22 +4780,22 @@
         const title = it.title && it.title[0] ? it.title[0] : "";
         const issuedYear = it.issued?.["date-parts"]?.[0]?.[0];
 
-        const t = jaccard(p.title, title);
-        const y = p.year && issuedYear === p.year ? 1 : 0;
-        const crAuthors = it.author || [];
-        const a = authorSimilarity(p.authors, crAuthors);
-
-        // arXiv 权重：标题 60%，作者 25%，年份 15%
-        const total = 0.60 * t + 0.25 * a + 0.15 * y;
-
-        return {
-          total,
-          details: {
-            title: { score: t, weight: 0.60, weighted: 0.60 * t },
-            author: { score: a, weight: 0.25, weighted: 0.25 * a },
-            year: { score: y, weight: 0.15, weighted: 0.15 * y },
-          },
+        const scores = {
+          title: jaccard(p.title, title),
+          year: p.year && issuedYear === p.year ? 1 : 0,
+          author: authorSimilarity(p.authors, it.author || []),
         };
+
+        const weights = getActiveWeights(true);
+        let total = 0;
+        const details = {};
+        for (const [field, wt] of Object.entries(weights)) {
+          const s = scores[field] ?? 0;
+          total += wt * s;
+          details[field] = { score: s, weight: wt, weighted: wt * s };
+        }
+
+        return { total, details };
       }
 
       function scoreCrossrefItem(p, it) {
@@ -4720,48 +4805,33 @@
             ? it["container-title"][0]
             : "";
         const issuedYear = it.issued?.["date-parts"]?.[0]?.[0];
-
-        const t = jaccard(p.title, title);
-        const j = journalSimilarity(p.journal, container);
-        const y = p.year && issuedYear === p.year ? 1 : 0;
-
-        const crAuthors = it.author || [];
-        const a = authorSimilarity(p.authors, crAuthors);
-
-        const v =
-          p.volume && it.volume && String(it.volume) === String(p.volume)
-            ? 1
-            : 0;
-        const i =
-          p.issue && it.issue && String(it.issue) === String(p.issue) ? 1 : 0;
         const page = it.page || "";
-        const fp = p.firstPage && page.includes(p.firstPage) ? 1 : 0;
-        const lp = p.lastPage && page.includes(p.lastPage) ? 1 : 0;
 
-        const total =
-          0.45 * t +
-          0.15 * a +
-          0.12 * j +
-          0.1 * y +
-          0.06 * v +
-          0.04 * i +
-          0.04 * fp +
-          0.04 * lp;
-
-        // 返回详细评分信息
-        return {
-          total,
-          details: {
-            title: { score: t, weight: 0.45, weighted: 0.45 * t },
-            author: { score: a, weight: 0.15, weighted: 0.15 * a },
-            journal: { score: j, weight: 0.12, weighted: 0.12 * j },
-            year: { score: y, weight: 0.1, weighted: 0.1 * y },
-            volume: { score: v, weight: 0.06, weighted: 0.06 * v },
-            issue: { score: i, weight: 0.04, weighted: 0.04 * i },
-            firstPage: { score: fp, weight: 0.04, weighted: 0.04 * fp },
-            lastPage: { score: lp, weight: 0.04, weighted: 0.04 * lp },
-          },
+        const scores = {
+          title: jaccard(p.title, title),
+          journal: journalSimilarity(p.journal, container),
+          year: p.year && issuedYear === p.year ? 1 : 0,
+          author: authorSimilarity(p.authors, it.author || []),
+          volume:
+            p.volume && it.volume && String(it.volume) === String(p.volume)
+              ? 1
+              : 0,
+          issue:
+            p.issue && it.issue && String(it.issue) === String(p.issue) ? 1 : 0,
+          firstPage: p.firstPage && page.includes(p.firstPage) ? 1 : 0,
+          lastPage: p.lastPage && page.includes(p.lastPage) ? 1 : 0,
         };
+
+        const weights = getActiveWeights(false);
+        let total = 0;
+        const details = {};
+        for (const [field, wt] of Object.entries(weights)) {
+          const s = scores[field] ?? 0;
+          total += wt * s;
+          details[field] = { score: s, weight: wt, weighted: wt * s };
+        }
+
+        return { total, details };
       }
 
       function getVerdict(score) {
@@ -4887,9 +4957,7 @@ title, author, ${isArxiv ? 'year' : 'journal, year, volume, issue, firstPage, la
         const scores = JSON.parse(jsonMatch[0]);
 
         // 计算加权总分
-        const weights = isArxiv
-          ? { title: 0.60, author: 0.25, year: 0.15 }
-          : { title: 0.45, author: 0.15, journal: 0.12, year: 0.10, volume: 0.06, issue: 0.04, firstPage: 0.04, lastPage: 0.04 };
+        const weights = getActiveWeights(isArxiv);
 
         const result = { openAlex: null, crossref: null };
 
@@ -4985,67 +5053,21 @@ title, author, ${isArxiv ? 'year' : 'journal, year, volume, issue, firstPage, la
         const oaScore = Math.max(oaRuleScore, oaBest?.aiScore || 0);
         const crScore = Math.max(crRuleScore, crBest?.aiScore || 0);
 
-        // 判断有效数据源数量（得分 > 0.1 视为有效匹配）
-        const oaValid = oaScore > 0.1;
-        const crValid = crScore > 0.1;
-
-        let combined;
-        let combinedDetails;
-
-        // 若任一来源 > 0.8，直接取最高分作为最终评分，抑制错误源分数
-        if (oaScore > 0.8 || crScore > 0.8) {
-          const highSource = oaScore >= crScore ? "openAlex" : "crossref";
-          const highScore = Math.max(oaScore, crScore);
-          combined = highScore;
-          combinedDetails = {
-            openAlex: {
-              score: oaScore,
-              weight: highSource === "openAlex" ? 1.0 : 0,
-              weighted: highSource === "openAlex" ? oaScore : 0,
-            },
-            crossref: {
-              score: crScore,
-              weight: highSource === "crossref" ? 1.0 : 0,
-              weighted: highSource === "crossref" ? crScore : 0,
-            },
-          };
-        } else if (oaValid && crValid) {
-          // 两个数据源都有匹配：加权计算
-          combined = Math.max(oaScore, crScore) * 0.6 + Math.min(oaScore, crScore) * 0.4;
-          combinedDetails = {
-            openAlex: {
-              score: oaScore,
-              weight: oaScore >= crScore ? 0.6 : 0.4,
-              weighted: oaScore >= crScore ? oaScore * 0.6 : oaScore * 0.4,
-            },
-            crossref: {
-              score: crScore,
-              weight: crScore > oaScore ? 0.6 : 0.4,
-              weighted: crScore > oaScore ? crScore * 0.6 : crScore * 0.4,
-            },
-          };
-        } else if (oaValid) {
-          // 只有 OpenAlex 有匹配：直接使用该分数
-          combined = oaScore;
-          combinedDetails = {
-            openAlex: { score: oaScore, weight: 1.0, weighted: oaScore },
-            crossref: { score: crScore, weight: 0, weighted: 0 },
-          };
-        } else if (crValid) {
-          // 只有 Crossref 有匹配：直接使用该分数
-          combined = crScore;
-          combinedDetails = {
-            openAlex: { score: oaScore, weight: 0, weighted: 0 },
-            crossref: { score: crScore, weight: 1.0, weighted: crScore },
-          };
-        } else {
-          // 两个都没有有效匹配
-          combined = Math.max(oaScore, crScore);
-          combinedDetails = {
-            openAlex: { score: oaScore, weight: 0.5, weighted: oaScore * 0.5 },
-            crossref: { score: crScore, weight: 0.5, weighted: crScore * 0.5 },
-          };
-        }
+        // 赢者通吃：综合评分 = max(OA, CR)
+        const highSource = oaScore >= crScore ? "openAlex" : "crossref";
+        const combined = Math.max(oaScore, crScore);
+        const combinedDetails = {
+          openAlex: {
+            score: oaScore,
+            weight: highSource === "openAlex" ? 1.0 : 0,
+            weighted: highSource === "openAlex" ? oaScore : 0,
+          },
+          crossref: {
+            score: crScore,
+            weight: highSource === "crossref" ? 1.0 : 0,
+            weighted: highSource === "crossref" ? crScore : 0,
+          },
+        };
 
         return {
           raw,
@@ -5166,14 +5188,8 @@ title, author, ${isArxiv ? 'year' : 'journal, year, volume, issue, firstPage, la
         const oaScore = combinedDetails.openAlex.score;
         const crScore = combinedDetails.crossref.score;
 
-        // 计算综合得分
-        const combined = Math.max(oaScore, crScore) * 0.6 + Math.min(oaScore, crScore) * 0.4;
-
-        // 判断排名
-        const getRank = (score) => {
-          if (score >= Math.max(oaScore, crScore)) return "(主)";
-          return "(次)";
-        };
+        // 赢者通吃：综合得分 = max(OA, CR)
+        const combined = Math.max(oaScore, crScore);
 
         let rows = `
     <div class="score-tooltip-row" style="padding-bottom: 8px; margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.15);">
@@ -5181,21 +5197,21 @@ title, author, ${isArxiv ? 'year' : 'journal, year, volume, issue, firstPage, la
         <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: linear-gradient(135deg, #10b981, #34d399); margin-right: 6px; box-shadow: 0 0 6px rgba(16, 185, 129, 0.4);"></span>
         综合评分公式
       </span>
-      <span class="score-tooltip-value" style="background: transparent; font-size: 10px;">max×0.6 + min×0.4</span>
+      <span class="score-tooltip-value" style="background: transparent; font-size: 14px;">max(OA, CR)</span>
     </div>
     <div class="score-tooltip-row">
       <span class="score-tooltip-label">
         <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: linear-gradient(135deg, #4f46e5, #818cf8); margin-right: 6px;"></span>
         OpenAlex ${oaScore >= crScore ? "(主)" : "(次)"}
       </span>
-      <span class="score-tooltip-value ${getScoreClass(oaScore)}">${oaScore.toFixed(3)} × ${combinedDetails.openAlex.weight.toFixed(1)} = ${combinedDetails.openAlex.weighted.toFixed(3)}</span>
+      <span class="score-tooltip-value ${getScoreClass(oaScore)}">${oaScore.toFixed(3)}</span>
     </div>
     <div class="score-tooltip-row">
       <span class="score-tooltip-label">
         <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: linear-gradient(135deg, #f59e0b, #fbbf24); margin-right: 6px;"></span>
         Crossref ${crScore > oaScore ? "(主)" : "(次)"}
       </span>
-      <span class="score-tooltip-value ${getScoreClass(crScore)}">${crScore.toFixed(3)} × ${combinedDetails.crossref.weight.toFixed(1)} = ${combinedDetails.crossref.weighted.toFixed(3)}</span>
+      <span class="score-tooltip-value ${getScoreClass(crScore)}">${crScore.toFixed(3)}</span>
     </div>`;
 
         rows += `
@@ -6649,6 +6665,34 @@ ${raw}
           closeAiConfigModal();
         }
       });
+
+      // 初始化字段权重 checkbox 状态
+      (function initFieldEnableCheckboxes() {
+        const fieldKeys = ["title", "author", "journal", "year", "volume", "issue", "firstPage", "lastPage"];
+        for (const key of fieldKeys) {
+          const cb = document.getElementById("field-enable-" + key);
+          if (!cb) continue;
+          if (key === "title") continue; // 标题始终禁用且勾选
+          // 恢复 localStorage 状态
+          if (disabledFields.has(key)) {
+            cb.checked = false;
+            cb.closest("tr").classList.add("field-disabled");
+          }
+          cb.addEventListener("change", function () {
+            const row = this.closest("tr");
+            if (this.checked) {
+              disabledFields.delete(key);
+              row.classList.remove("field-disabled");
+            } else {
+              disabledFields.add(key);
+              row.classList.add("field-disabled");
+            }
+            localStorage.setItem(DISABLED_FIELDS_KEY, JSON.stringify([...disabledFields]));
+            updateWeightDisplay();
+          });
+        }
+        updateWeightDisplay();
+      })();
 
       // 页面加载时初始化 AI 配置 UI
       updateAiConfigUI();

@@ -1267,6 +1267,63 @@
         max-height: calc(80vh - 80px);
       }
 
+      /* 抽屉样式 */
+      .drawer-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.3);
+        z-index: 2000;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+      }
+
+      .drawer-overlay.show {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      .drawer {
+        position: fixed;
+        top: 0;
+        right: 0;
+        width: 420px;
+        max-width: 90vw;
+        height: 100vh;
+        background: var(--card-bg);
+        box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+        z-index: 2001;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .drawer-overlay.show .drawer {
+        transform: translateX(0);
+      }
+
+      .drawer-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px 24px;
+        border-bottom: 1px solid var(--border);
+        color: white;
+      }
+
+      .drawer-header h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+      }
+
+      .drawer-body {
+        padding: 24px;
+        overflow-y: auto;
+        flex: 1;
+      }
+
       .score-table {
         width: 100%;
         border-collapse: collapse;
@@ -2182,11 +2239,11 @@
       </div>
     </div>
 
-    <!-- AI 配置弹窗 -->
-    <div id="aiConfigModal" class="modal-overlay">
-      <div class="modal" style="max-width: 500px">
+    <!-- AI 配置抽屉 -->
+    <div id="aiConfigModal" class="drawer-overlay">
+      <div class="drawer">
         <div
-          class="modal-header"
+          class="drawer-header"
           style="background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)"
         >
           <h3>🤖 AI 智能解析配置</h3>
@@ -2204,7 +2261,7 @@
             </svg>
           </button>
         </div>
-        <div class="modal-body">
+        <div class="drawer-body">
           <div id="aiConfigModalStatus" class="ai-status not-configured">
             <span class="ai-status-dot"></span>
             <span>未配置 API</span>
@@ -2233,12 +2290,37 @@
 
             <div class="form-group">
               <label for="aiModel">模型</label>
-              <input
-                type="text"
-                id="aiModel"
-                placeholder="gpt-4o-mini"
-                value="gpt-4o-mini"
-              />
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <div style="position: relative; flex: 1;" id="aiModelCombo">
+                  <input
+                    type="text"
+                    id="aiModel"
+                    placeholder="请输入或从列表选择模型"
+                    value=""
+                    autocomplete="off"
+                    oninput="filterModelList()"
+                    onfocus="showModelDropdown()"
+                  />
+                  <div id="aiModelDropdown" style="
+                    display: none;
+                    position: absolute;
+                    top: 100%;
+                    left: 0;
+                    right: 0;
+                    max-height: 200px;
+                    overflow-y: auto;
+                    background: var(--card-bg);
+                    border: 2px solid var(--border);
+                    border-top: none;
+                    border-radius: 0 0 10px 10px;
+                    z-index: 1000;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                  "></div>
+                </div>
+                <button class="btn btn-secondary" onclick="fetchModelList()" style="white-space: nowrap; flex-shrink: 0;">
+                  获取模型列表
+                </button>
+              </div>
             </div>
 
             <div class="form-group">
@@ -5766,8 +5848,8 @@ title, author, ${isArxiv ? 'year' : 'journal, year, volume, issue, firstPage, la
 任务：
 1. 识别并分离每一条独立的引用条目
 2. 合并同一条目内被错误换行分割的内容
-3. 将中文引号（""''）转换为英文引号（""''）
-4. 移除序号（如 [1]、1.、(1) 等）
+3. 将中文引号（“”‘’）转换为英文引号（""''）
+4. 移除引用序号（如 [1]、1.、(1) 等）
 5. 移除多余的空白和换行
 6. 每条引用单独一行，条目之间用一个空行分隔
 
@@ -5802,11 +5884,33 @@ ${text}
 
       /** ---------- BibTeX 导出功能 ---------- */
       // 显示提示消息
-      function showToast(message) {
+      let _toastTimer = null;
+      let _toastCounterTimer = null;
+
+      function showToast(message, persistent = false) {
         const toast = document.getElementById("toast");
+        clearTimeout(_toastTimer);
+        clearInterval(_toastCounterTimer);
         toast.textContent = message;
         toast.classList.add("show");
-        setTimeout(() => toast.classList.remove("show"), 2000);
+        if (!persistent) {
+          _toastTimer = setTimeout(() => toast.classList.remove("show"), 2000);
+        }
+      }
+
+      function showPersistentToast(baseMessage) {
+        const start = Date.now();
+        showToast(`${baseMessage} (0.0s)`, true);
+        _toastCounterTimer = setInterval(() => {
+          const elapsed = ((Date.now() - start) / 1000).toFixed(1);
+          document.getElementById("toast").textContent = `${baseMessage} (${elapsed}s)`;
+        }, 100);
+      }
+
+      function dismissPersistentToast(message) {
+        clearInterval(_toastCounterTimer);
+        _toastCounterTimer = null;
+        showToast(message);
       }
 
       // 导出模式：all 或 high
@@ -6187,7 +6291,6 @@ ${text}
         if (e.key === "Escape") {
           closeScoreRulesModal();
           closeFormatGuideModal();
-          closeAiConfigModal();
         }
       });
 
@@ -6247,9 +6350,14 @@ ${text}
 
         document.getElementById("aiBaseUrl").value = "";
         document.getElementById("aiApiKey").value = "";
-        document.getElementById("aiModel").value = "gpt-4o-mini";
+        document.getElementById("aiModel").value = "";
         document.getElementById("aiTemperature").value = "0.1";
         document.getElementById("aiTempValue").textContent = "0.1";
+
+        const dropdown = document.getElementById("aiModelDropdown");
+        dropdown.innerHTML = "";
+        dropdown.style.display = "none";
+        _modelList = [];
 
         updateAiConfigUI();
         showToast("AI 配置已清除");
@@ -6266,7 +6374,7 @@ ${text}
           return;
         }
 
-        showToast("正在测试连接...");
+        showPersistentToast("正在测试连接...");
 
         try {
           const response = await fetch(`${baseUrl}/chat/completions`, {
@@ -6283,15 +6391,108 @@ ${text}
           });
 
           if (response.ok) {
-            showToast("连接成功！");
+            dismissPersistentToast("连接成功！");
           } else {
             const error = await response.json().catch(() => ({}));
-            showToast(`连接失败: ${error.error?.message || response.status}`);
+            dismissPersistentToast(`连接失败: ${error.error?.message || response.status}`);
           }
         } catch (e) {
-          showToast(`连接失败: ${e.message}`);
+          dismissPersistentToast(`连接失败: ${e.message}`);
         }
       }
+
+      // 获取可用模型列表
+      let _modelList = []; // 缓存已获取的模型列表
+
+      async function fetchModelList() {
+        const baseUrl = document.getElementById("aiBaseUrl").value.trim();
+        const apiKey = document.getElementById("aiApiKey").value.trim();
+
+        if (!baseUrl || !apiKey) {
+          showToast("请先填写 API 地址和密钥");
+          return;
+        }
+
+        showToast("正在获取模型列表...");
+
+        try {
+          const url = baseUrl.replace(/\/+$/, "") + "/models";
+          const response = await fetch(url, {
+            headers: { Authorization: `Bearer ${apiKey}` }
+          });
+
+          if (!response.ok) {
+            const error = await response.json().catch(() => ({}));
+            showToast(`获取模型列表失败: ${error.error?.message || response.status}`);
+            return;
+          }
+
+          const result = await response.json();
+          _modelList = (result.data || [])
+            .map((m) => m.id)
+            .sort((a, b) => a.localeCompare(b));
+
+          if (_modelList.length === 0) {
+            showToast("未找到可用模型");
+            return;
+          }
+
+          showToast(`已获取 ${_modelList.length} 个模型`);
+          filterModelList();
+          showModelDropdown();
+        } catch (e) {
+          showToast(`获取模型列表失败: ${e.message}`);
+        }
+      }
+
+      // 根据输入过滤并渲染下拉列表
+      function filterModelList() {
+        const dropdown = document.getElementById("aiModelDropdown");
+        if (_modelList.length === 0) return;
+
+        const keyword = document.getElementById("aiModel").value.trim().toLowerCase();
+        const filtered = keyword
+          ? _modelList.filter((id) => id.toLowerCase().includes(keyword))
+          : _modelList;
+
+        dropdown.innerHTML = "";
+        if (filtered.length === 0) {
+          dropdown.innerHTML = '<div style="padding: 8px 14px; color: var(--text-muted); font-size: 13px;">无匹配模型</div>';
+        } else {
+          filtered.forEach((id) => {
+            const item = document.createElement("div");
+            item.textContent = id;
+            item.style.cssText = "padding: 8px 14px; cursor: pointer; font-size: 13px; transition: background 0.15s;";
+            item.onmouseenter = () => item.style.background = "var(--hover-bg, rgba(139,92,246,0.08))";
+            item.onmouseleave = () => item.style.background = "";
+            item.onmousedown = (e) => {
+              e.preventDefault(); // 防止 input 失焦
+              document.getElementById("aiModel").value = id;
+              hideModelDropdown();
+            };
+            dropdown.appendChild(item);
+          });
+        }
+      }
+
+      // 显示/隐藏下拉列表
+      function showModelDropdown() {
+        if (_modelList.length === 0) return;
+        filterModelList();
+        document.getElementById("aiModelDropdown").style.display = "block";
+      }
+
+      function hideModelDropdown() {
+        document.getElementById("aiModelDropdown").style.display = "none";
+      }
+
+      // 点击外部关闭下拉列表
+      document.addEventListener("click", (e) => {
+        const combo = document.getElementById("aiModelCombo");
+        if (combo && !combo.contains(e.target)) {
+          hideModelDropdown();
+        }
+      });
 
       // 更新 AI 配置 UI
       function updateAiConfigUI() {
@@ -6442,7 +6643,7 @@ ${raw}
       // 打开配置链接
       document.getElementById("openAiConfig").addEventListener("click", openAiConfigModal);
 
-      // AI 配置弹窗点击遮罩关闭
+      // AI 配置抽屉点击遮罩关闭
       document.getElementById("aiConfigModal").addEventListener("click", (e) => {
         if (e.target === e.currentTarget) {
           closeAiConfigModal();
@@ -6473,6 +6674,9 @@ ${raw}
       window.saveAiConfig = saveAiConfig;
       window.clearAiConfig = clearAiConfig;
       window.testAiConfig = testAiConfig;
+      window.fetchModelList = fetchModelList;
+      window.filterModelList = filterModelList;
+      window.showModelDropdown = showModelDropdown;
     </script>
   </body>
 </html>

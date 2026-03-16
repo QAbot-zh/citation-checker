@@ -1777,7 +1777,7 @@
             <div class="concurrency-section">
               <div class="concurrency-control">
                 <label for="concurrency">并发数</label>
-                <input type="number" id="concurrency" min="1" max="20" value="5" />
+                <input type="number" id="concurrency" min="1" max="20" value="3" />
               </div>
               <div class="hint" style="margin-top: 4px;">
                 同时处理的请求数量，建议 3-5。过高可能触发 API 限流。
@@ -4702,7 +4702,7 @@
       /** ---------- API 查询 ---------- */
       async function queryOpenAlex(p, mailto, isArxiv) {
         let url = new URL("https://api.openalex.org/works");
-        url.searchParams.set("per-page", "10");  // 减少返回数量
+        url.searchParams.set("per-page", "5");  // 减少返回数量
         if (mailto) url.searchParams.set("mailto", mailto);
 
         if (p.doi) {
@@ -4716,6 +4716,15 @@
         }
 
         const r = await fetch(url.toString());
+
+        // 429 重试逻辑
+        if (r.status === 429) {
+          await new Promise(resolve => setTimeout(resolve, 5000)); // 等待 5 秒
+          const retryR = await fetch(url.toString());
+          if (!retryR.ok) throw new Error("OpenAlex 请求失败: " + retryR.status);
+          return await retryR.json();
+        }
+
         if (!r.ok) throw new Error("OpenAlex 请求失败: " + r.status);
         return await r.json();
       }
@@ -4735,6 +4744,18 @@
           const r = await fetch(url.toString(), {
             headers: { Accept: "application/json" },
           });
+
+          // 429 重试逻辑
+          if (r.status === 429) {
+            await new Promise(resolve => setTimeout(resolve, 5000)); // 等待 5 秒
+            const retryR = await fetch(url.toString(), {
+              headers: { Accept: "application/json" },
+            });
+            if (!retryR.ok) throw new Error("Crossref DOI 精确查询失败: " + retryR.status);
+            const one = await retryR.json();
+            return { message: { items: [one.message] } };
+          }
+
           if (!r.ok) throw new Error("Crossref DOI 精确查询失败: " + r.status);
 
           const one = await r.json();
@@ -4744,7 +4765,7 @@
 
         // 原来的：模糊检索
         let url = new URL("https://api.crossref.org/works");
-        url.searchParams.set("rows", "15");  // 减少返回数量
+        url.searchParams.set("rows", "5");  // 减少返回数量
         if (mailto) url.searchParams.set("mailto", mailto);
 
         if (p.title) url.searchParams.set("query.bibliographic", p.title);
@@ -4752,6 +4773,17 @@
         const r = await fetch(url.toString(), {
           headers: { Accept: "application/json" },
         });
+
+        // 429 重试逻辑
+        if (r.status === 429) {
+          await new Promise(resolve => setTimeout(resolve, 5000)); // 等待 5 秒
+          const retryR = await fetch(url.toString(), {
+            headers: { Accept: "application/json" },
+          });
+          if (!retryR.ok) throw new Error("Crossref 请求失败: " + retryR.status);
+          return await retryR.json();
+        }
+
         if (!r.ok) throw new Error("Crossref 请求失败: " + r.status);
         return await r.json();
       }
@@ -5622,7 +5654,7 @@ title, author, ${isArxiv ? 'year' : 'journal, year, volume, issue, firstPage, la
         window.extractedMode = false;
 
         // 获取并发数
-        const concurrency = parseInt(document.getElementById("concurrency").value, 10) || 5;
+        const concurrency = parseInt(document.getElementById("concurrency").value, 10) || 3;
 
         // 创建结果数组（保持顺序）
         const results = new Array(lines.length).fill(null);

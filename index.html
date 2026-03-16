@@ -3203,7 +3203,8 @@
 
         // 3. 检测引用格式类型
         const hasChineseMarker =
-          /\[(J|M|C|D|N|R|S|P|DB|CP|EB|OL|Z|A|G|K)\]/i.test(s);
+          /\[(J|M|C|D|N|R|S|P|DB|CP|EB|OL|Z|A|G|K)\]/i.test(s) ||
+          /\/\//.test(s);  // GB/T 7714 会议论文格式使用 // 分隔
         const hasQuotedTitle = /"[^"]{5,}"|「[^」]{5,}」|《[^》]{5,}》/.test(s);
         const hasIEEEStyle =
           /\bvol\.\s*\d+/i.test(s) ||
@@ -3462,6 +3463,54 @@
         let firstPage = null,
           lastPage = null,
           publisher = null;
+
+        // 检测是否为会议论文格式（使用 // 分隔）
+        const hasDoubleSlash = s.includes("//");
+
+        if (hasDoubleSlash) {
+          // 会议论文格式：作者. 论文标题//会议论文集名称. 年份: 页码.
+          const parts = s.split("//");
+          if (parts.length >= 2) {
+            const beforeSlash = parts[0].trim();
+            const afterSlash = parts[1].trim();
+
+            // 提取作者和标题（在 // 之前）
+            const firstDotIdx = beforeSlash.indexOf(". ");
+            if (firstDotIdx !== -1) {
+              authors = parseChineseAuthors(beforeSlash.slice(0, firstDotIdx));
+              title = beforeSlash.slice(firstDotIdx + 2).trim();
+            } else {
+              // 没有句号，尝试按逗号分割
+              const commaParts = beforeSlash.split(/[,，]/);
+              if (commaParts.length > 1) {
+                authors = parseChineseAuthors(commaParts[0]);
+                title = commaParts.slice(1).join(",").trim();
+              }
+            }
+
+            // 提取会议论文集名称（在 // 之后，第一个句号之前）
+            const afterDotIdx = afterSlash.indexOf(". ");
+            if (afterDotIdx !== -1) {
+              journal = afterSlash.slice(0, afterDotIdx).trim();
+            } else {
+              // 没有句号，尝试按逗号或冒号分割
+              const match = afterSlash.match(/^([^,:：]+)/);
+              if (match) journal = match[1].trim();
+            }
+
+            // 页码提取
+            const pageMatch = afterSlash.match(/[:：]\s*(\d+)\s*[-–—]\s*(\d+)/);
+            if (pageMatch) {
+              firstPage = pageMatch[1];
+              lastPage = pageMatch[2];
+            } else {
+              const singlePage = afterSlash.match(/[:：]\s*(\d+)\s*[.。]?\s*$/);
+              if (singlePage) firstPage = singlePage[1];
+            }
+          }
+
+          return { title, journal, authors, volume, issue, firstPage, lastPage, publisher };
+        }
 
         // 匹配文献类型标记
         const typeMatch = s.match(/\[([JMCDNRSPZA]|DB|CP|EB|OL)\]/i);

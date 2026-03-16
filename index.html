@@ -603,18 +603,19 @@
       }
 
       .btn-secondary {
-        background: var(--card-bg);
-        color: var(--text);
-        border: 2px solid var(--border);
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        border: none;
+        box-shadow: 0 4px 14px 0 rgba(16, 185, 129, 0.35);
       }
 
       .btn-secondary:hover {
-        background: var(--bg);
-        border-color: #cbd5e1;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px 0 rgba(16, 185, 129, 0.45);
       }
 
       .btn-secondary:active {
-        transform: scale(0.98);
+        transform: translateY(0);
       }
 
       .btn-clear {
@@ -2210,6 +2211,26 @@
         <div class="export-option" data-value="high">高可信</div>
       </div>
       <span class="btn-tooltip-wrapper">
+        <button id="exportReport" class="btn btn-secondary">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+          >
+            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+          下载校验报告
+        </button>
+        <span class="btn-tooltip">下载全部条目的校验报告（CSV 格式）</span>
+      </span>
+      <span class="btn-tooltip-wrapper">
         <button id="exportBib" class="btn btn-primary">
           <svg
             width="16"
@@ -2225,7 +2246,7 @@
           </svg>
           下载 BibTeX
         </button>
-        <span class="btn-tooltip">下载 BibTeX 文件</span>
+        <span class="btn-tooltip">下载全部条目的 BibTeX 文件</span>
       </span>
       <span class="btn-tooltip-wrapper">
         <button id="copyBib" class="btn btn-copy">
@@ -2242,7 +2263,7 @@
           </svg>
           复制 BibTeX
         </button>
-        <span class="btn-tooltip">复制 BibTeX 到剪贴板</span>
+        <span class="btn-tooltip">复制全部条目的 BibTeX 到剪贴板</span>
       </span>
     </div>
 
@@ -3440,9 +3461,104 @@
       }
 
       /** ---------- 解析引用 ---------- */
+      /** ---------- BibTeX 格式解析 ---------- */
+      function parseBibTeXFormat(raw) {
+        try {
+          const s = raw.trim();
+
+          // 提取字段的辅助函数
+          const extractField = (fieldName) => {
+            const pattern = new RegExp(`${fieldName}\\s*=\\s*[{"]([^}"]*)`, 'i');
+            const match = s.match(pattern);
+            return match ? match[1].trim() : null;
+          };
+
+          // 提取作者
+          const authorStr = extractField('author');
+          let authors = [];
+          if (authorStr) {
+            // BibTeX 作者格式：Author1 and Author2 and Author3
+            authors = authorStr.split(/\s+and\s+/i).map(a => a.trim()).filter(a => a);
+          }
+
+          // 提取标题
+          const title = extractField('title');
+
+          // 提取期刊/会议名称
+          let journal = extractField('journal') || extractField('booktitle');
+
+          // 提取年份
+          const yearStr = extractField('year');
+          const year = yearStr ? parseInt(yearStr, 10) : null;
+
+          // 提取卷号
+          const volume = extractField('volume');
+
+          // 提取期号
+          const issue = extractField('number') || extractField('issue');
+
+          // 提取页码
+          const pagesStr = extractField('pages');
+          let firstPage = null, lastPage = null;
+          if (pagesStr) {
+            const pageMatch = pagesStr.match(/(\d+)\s*[-–—]\s*(\d+)/);
+            if (pageMatch) {
+              firstPage = pageMatch[1];
+              lastPage = pageMatch[2];
+            } else {
+              firstPage = pagesStr.replace(/\D/g, '');
+            }
+          }
+
+          // 提取 DOI
+          const doi = extractField('doi');
+
+          // 提取出版社
+          const publisher = extractField('publisher');
+
+          return {
+            raw,
+            title,
+            authors,
+            journal,
+            year,
+            volume,
+            issue,
+            firstPage,
+            lastPage,
+            doi,
+            publisher,
+            format: "BibTeX"
+          };
+        } catch (e) {
+          console.error("BibTeX 解析失败:", e);
+          // 解析失败，返回基本结构
+          return {
+            raw,
+            title: null,
+            authors: [],
+            journal: null,
+            year: null,
+            volume: null,
+            issue: null,
+            firstPage: null,
+            lastPage: null,
+            doi: null,
+            publisher: null,
+            format: "BibTeX"
+          };
+        }
+      }
+
       function parseCitation(raw) {
         // 预处理：标准化输入
         let s = raw.trim();
+
+        // 检测 BibTeX 格式（以 @ 开头）
+        if (s.startsWith('@')) {
+          return parseBibTeXFormat(s);
+        }
+
         // 移除开头的序号如 [1], 1., 1)
         s = s.replace(/^\s*\[?\d+[\].):\s]+/, "");
         // 标准化各种空白字符
@@ -3741,7 +3857,8 @@
           issue = null;
         let firstPage = null,
           lastPage = null,
-          publisher = null;
+          publisher = null,
+          year = null;
 
         // 检测是否为会议论文格式（使用 // 分隔）
         const hasDoubleSlash = s.includes("//");
@@ -3777,6 +3894,13 @@
               if (match) journal = match[1].trim();
             }
 
+            // 提取年份（在 // 之后）
+            let year = null;
+            const yearMatch = afterSlash.match(/[,，.。]\s*(\d{4})\s*[:：]/);
+            if (yearMatch) {
+              year = parseInt(yearMatch[1], 10);
+            }
+
             // 页码提取
             const pageMatch = afterSlash.match(/[:：]\s*(\d+)\s*[-–—]\s*(\d+)/);
             if (pageMatch) {
@@ -3788,7 +3912,7 @@
             }
           }
 
-          return { title, journal, authors, volume, issue, firstPage, lastPage, publisher };
+          return { title, journal, authors, volume, issue, firstPage, lastPage, publisher, year };
         }
 
         // 匹配文献类型标记
@@ -5388,10 +5512,17 @@ title, author, ${isArxiv ? 'year' : 'journal, year, volume, issue, firstPage, la
         let crRuleScore = crBest?.best ? crBest.bestScore : 0;
         let aiScoringResult = null;
 
-        // 如果启用 AI 评分，调用 AI 进行评分
+        // 如果启用 AI 评分，调用 AI 进行评分（添加超时保护）
         if (useAiScoring && (oaBest?.best || crBest?.best)) {
           try {
-            aiScoringResult = await scoreWithAI(raw, p, oaBest?.best, crBest?.best, isArxiv);
+            // 添加 30 秒超时
+            const timeoutPromise = new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('AI 评分超时')), 30000)
+            );
+            aiScoringResult = await Promise.race([
+              scoreWithAI(raw, p, oaBest?.best, crBest?.best, isArxiv),
+              timeoutPromise
+            ]);
             if (aiScoringResult) {
               // 保存 AI 评分详情
               if (aiScoringResult.openAlex !== null && oaBest) {
@@ -5404,7 +5535,7 @@ title, author, ${isArxiv ? 'year' : 'journal, year, volume, issue, firstPage, la
               }
             }
           } catch (e) {
-            console.error("AI 评分失败:", e);
+            console.error("AI 评分失败:", e.message);
             // AI 评分失败，继续使用规则评分
           }
         }
@@ -5878,6 +6009,7 @@ title, author, ${isArxiv ? 'year' : 'journal, year, volume, issue, firstPage, la
           document
             .querySelector(".export-option[data-value='high']")
             .classList.add("active");
+          updateExportTooltips();
         } else {
           switchToAll();
         }
@@ -5902,11 +6034,55 @@ title, author, ${isArxiv ? 'year' : 'journal, year, volume, issue, firstPage, la
         const rawText = document.getElementById("citation").value;
         const mailto = document.getElementById("mailto").value.trim();
 
+        // 智能分割输入：识别 BibTeX 条目（跨多行）和普通引用（单行）
+        function smartSplitCitations(text) {
+          const entries = [];
+          const lines = text.split("\n");
+          let currentEntry = "";
+          let inBibTeX = false;
+          let braceCount = 0;
+
+          for (let line of lines) {
+            const trimmed = line.trim();
+
+            // 检测 BibTeX 开始
+            if (trimmed.startsWith('@')) {
+              // 如果之前有未完成的条目，先保存
+              if (currentEntry.trim()) {
+                entries.push(currentEntry.trim());
+              }
+              currentEntry = line;
+              inBibTeX = true;
+              braceCount = (line.match(/{/g) || []).length - (line.match(/}/g) || []).length;
+            } else if (inBibTeX) {
+              // 在 BibTeX 条目中，继续累积
+              currentEntry += "\n" + line;
+              braceCount += (line.match(/{/g) || []).length - (line.match(/}/g) || []).length;
+
+              // 检查是否完成（大括号匹配）
+              if (braceCount <= 0) {
+                entries.push(currentEntry.trim());
+                currentEntry = "";
+                inBibTeX = false;
+              }
+            } else {
+              // 普通引用，每行一条
+              if (trimmed) {
+                entries.push(trimmed);
+              }
+            }
+          }
+
+          // 处理最后一个条目
+          if (currentEntry.trim()) {
+            entries.push(currentEntry.trim());
+          }
+
+          return entries;
+        }
+
         // 解析多行，过滤空行
-        const lines = rawText
-          .split("\n")
-          .map((l) => l.trim())
-          .filter(Boolean);
+        const lines = smartSplitCitations(rawText);
 
         if (lines.length === 0) {
           resultsDiv.innerHTML = `
@@ -6292,6 +6468,23 @@ ${text}
       // 导出模式：all 或 high
       let exportMode = "all";
 
+      // 更新导出按钮的 tooltip
+      function updateExportTooltips() {
+        const reportTooltip = document.querySelector('#exportReport').parentElement.querySelector('.btn-tooltip');
+        const downloadTooltip = document.querySelector('#exportBib').parentElement.querySelector('.btn-tooltip');
+        const copyTooltip = document.querySelector('#copyBib').parentElement.querySelector('.btn-tooltip');
+
+        if (exportMode === "all") {
+          reportTooltip.textContent = "下载全部条目的校验报告（CSV 格式）";
+          downloadTooltip.textContent = "下载全部条目的 BibTeX 文件";
+          copyTooltip.textContent = "复制全部条目的 BibTeX 到剪贴板";
+        } else {
+          reportTooltip.textContent = "下载高可信条目的校验报告（CSV 格式）";
+          downloadTooltip.textContent = "下载高可信条目的 BibTeX 文件";
+          copyTooltip.textContent = "复制高可信条目的 BibTeX 到剪贴板";
+        }
+      }
+
       // 选择器切换
       document.querySelectorAll(".export-option").forEach((option) => {
         option.addEventListener("click", () => {
@@ -6300,6 +6493,7 @@ ${text}
             .forEach((o) => o.classList.remove("active"));
           option.classList.add("active");
           exportMode = option.dataset.value;
+          updateExportTooltips();
         });
       });
 
@@ -6312,6 +6506,7 @@ ${text}
         document
           .querySelector(".export-option[data-value='all']")
           .classList.add("active");
+        updateExportTooltips();
       }
 
       // 获取要导出的结果和智能提示信息
@@ -6367,6 +6562,97 @@ ${text}
           )
           .join("\n\n");
       }
+
+      // 生成校验报告 CSV
+      function generateReportCSV(results) {
+        if (results.length === 0) return "";
+
+        // CSV 转义函数
+        const csvEscape = (str) => {
+          if (str == null) return "";
+          const s = String(str);
+          if (s.includes('"') || s.includes(',') || s.includes('\n')) {
+            return `"${s.replace(/"/g, '""')}"`;
+          }
+          return s;
+        };
+
+        // CSV 表头
+        const headers = [
+          "序号",
+          "原始引用",
+          "可信度",
+          "最终得分",
+          "OpenAlex规则得分",
+          "OpenAlex AI得分",
+          "Crossref规则得分",
+          "Crossref AI得分",
+          "标题",
+          "作者",
+          "期刊/出版社",
+          "年份",
+          "卷",
+          "期",
+          "首页",
+          "末页",
+          "DOI"
+        ];
+
+        const rows = results.map((r, index) => {
+          const parsed = r.parsed || {};
+          const verdict = r.verdict || {};
+
+          // 获取得分 - 使用正确的数据结构
+          const oaBest = r.oaBest || {};
+          const crBest = r.crBest || {};
+
+          // 可信度映射
+          const levelMap = { high: "高可信", medium: "中可信", low: "低可信" };
+
+          return [
+            index + 1,
+            r.raw || "",
+            levelMap[verdict.level] || "",
+            (r.combined || 0).toFixed(2),
+            (oaBest.bestScore || 0).toFixed(2),
+            (oaBest.aiScore || 0).toFixed(2),
+            (crBest.bestScore || 0).toFixed(2),
+            (crBest.aiScore || 0).toFixed(2),
+            parsed.title || "",
+            parsed.authors?.join("; ") || "",
+            parsed.journal || "",
+            parsed.year || "",
+            parsed.volume || "",
+            parsed.issue || "",
+            parsed.firstPage || "",
+            parsed.lastPage || "",
+            parsed.doi || ""
+          ].map(csvEscape).join(",");
+        });
+
+        return [headers.join(","), ...rows].join("\n");
+      }
+
+      // 下载校验报告
+      document.getElementById("exportReport").addEventListener("click", () => {
+        const { results, message, needSwitch } = getResultsForExport();
+        if (results.length === 0) {
+          showToast(message);
+          if (needSwitch) switchToAll();
+          return;
+        }
+
+        const csv = generateReportCSV(results);
+        const filename = `citation_report_${new Date()
+          .toISOString()
+          .slice(0, 19)
+          .replace(/:/g, "-")}.csv`;
+
+        // 添加 BOM 以支持 Excel 正确显示中文
+        const bom = "\uFEFF";
+        downloadFile(bom + csv, filename);
+        showToast(`已下载 ${results.length} 条校验报告`);
+      });
 
       // 下载 BibTeX
       document.getElementById("exportBib").addEventListener("click", () => {

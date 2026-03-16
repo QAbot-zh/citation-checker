@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>引用真伪快速校验（OpenAlex + Crossref）</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
     <style>
       :root {
         --primary: #4f46e5;
@@ -38,8 +39,132 @@
       }
 
       .header {
+        position: relative;
         text-align: center;
         margin-bottom: 32px;
+      }
+
+      .header-nav {
+        position: absolute;
+        top: 0;
+        right: 0;
+      }
+
+      .nav-dropdown {
+        position: relative;
+        display: inline-block;
+      }
+
+      .nav-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 14px;
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1));
+        border: 1px solid rgba(99, 102, 241, 0.3);
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text);
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .nav-btn:hover {
+        border-color: var(--primary);
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.15));
+      }
+
+      .nav-btn svg {
+        width: 16px;
+        height: 16px;
+      }
+
+      .nav-menu {
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        min-width: 200px;
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-10px);
+        transition: all 0.2s ease;
+        z-index: 100;
+      }
+
+      .nav-dropdown:hover .nav-menu {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+      }
+
+      .nav-menu-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        color: var(--text);
+        text-decoration: none;
+        font-size: 13px;
+        transition: background 0.2s ease;
+        border-left: 3px solid transparent;
+      }
+
+      .nav-menu-item:first-child {
+        border-radius: 10px 10px 0 0;
+      }
+
+      .nav-menu-item:last-child {
+        border-radius: 0 0 10px 10px;
+      }
+
+      .nav-menu-item:hover {
+        background: rgba(99, 102, 241, 0.05);
+      }
+
+      .nav-menu-item.google:hover {
+        background: rgba(66, 133, 244, 0.05);
+        border-left-color: #4285f4;
+      }
+
+      .nav-menu-item.ieee:hover {
+        background: rgba(0, 121, 193, 0.05);
+        border-left-color: #0079c1;
+      }
+
+      .nav-menu-item.semantic:hover {
+        background: rgba(245, 158, 11, 0.05);
+        border-left-color: #f59e0b;
+      }
+
+      .nav-menu-item.arxiv:hover {
+        background: rgba(185, 28, 28, 0.05);
+        border-left-color: #b91c1c;
+      }
+
+      .nav-menu-item svg {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+      }
+
+      .nav-menu-item img {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+        object-fit: contain;
+      }
+
+      .feature-pill.clickable {
+        cursor: pointer;
+      }
+
+      .feature-pill.clickable:active {
+        transform: translateY(-1px);
       }
 
       .header h1 {
@@ -1821,6 +1946,39 @@
   </head>
   <body>
     <div class="header">
+      <div class="header-nav">
+        <div class="nav-dropdown">
+          <div class="nav-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="2" y1="12" x2="22" y2="12"></line>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+            </svg>
+            更多检索网站
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 14px; height: 14px;">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+          <div class="nav-menu">
+            <a href="https://arxiv.org" target="_blank" rel="noopener noreferrer" class="nav-menu-item arxiv">
+              <img src="assets/arxiv.svg" alt="arXiv">
+              arXiv
+            </a>
+            <a href="https://scholar.google.com" target="_blank" rel="noopener noreferrer" class="nav-menu-item google">
+              <img src="assets/google-scholar.svg" alt="Google Scholar">
+              Google Scholar
+            </a>
+            <a href="https://ieeexplore.ieee.org" target="_blank" rel="noopener noreferrer" class="nav-menu-item ieee">
+              <img src="assets/ieee.svg" alt="IEEE">
+              IEEE Xplore
+            </a>
+            <a href="https://www.semanticscholar.org" target="_blank" rel="noopener noreferrer" class="nav-menu-item semantic">
+              <img src="assets/semantic-scholar.png" alt="Semantic Scholar">
+              Semantic Scholar
+            </a>
+          </div>
+        </div>
+      </div>
       <h1>引用真伪快速校验</h1>
       <div class="feature-pills">
         <span class="feature-pill">
@@ -1840,7 +1998,7 @@
         </span>
       </div>
       <div class="feature-pills" style="margin-top: 12px;">
-        <span class="feature-pill info-pill">
+        <span class="feature-pill info-pill clickable" onclick="openScoreRulesModal()">
           <span class="feature-pill-icon">⚙️</span>
           打分标准
           <span class="feature-pill-tooltip">支持启用/禁用评分字段，权重自动归一化重新分配；采用赢者通吃策略（取 OpenAlex 和 Crossref 最高分）</span>
@@ -1876,11 +2034,13 @@
           </div>
           <textarea
             id="citation"
-            placeholder='在此粘贴引用条目，每行一条。支持多种格式：&#10;&#10;中文 GB/T 7714: 张三. 论文标题[J]. 期刊名, 2020, 10(2): 1-20.&#10;APA: Author, A. A. (2020). Title. Journal, 10(2), 1-20.&#10;IEEE: A. Author, "Title," Journal, vol. 10, no. 2, pp. 1-20, 2020.&#10;MLA: Author. "Title." Journal 10.2 (2020): 1-20.&#10;Vancouver: Author. Title. Journal. 2020;10(2):1-20.&#10;&#10;格式乱了也没关系，系统会智能识别！'
+            placeholder='在此粘贴引用条目，每行一条。支持多种格式：&#10;&#10;中文 GB/T 7714: 张三. 论文标题[J]. 期刊名, 2020, 10(2): 1-20.&#10;APA: Author, A. A. (2020). Title. Journal, 10(2), 1-20.&#10;IEEE: A. Author, "Title," Journal, vol. 10, no. 2, pp. 1-20, 2020.&#10;MLA: Author. "Title." Journal 10.2 (2020): 1-20.&#10;Vancouver: Author. Title. Journal. 2020;10(2):1-20.'
           ></textarea>
           <div class="hint">
             💡 提示：支持 GB/T 7714、APA、MLA、IEEE、Chicago、Vancouver、Harvard、Nature、Science、OSA/Optica
-            等格式。每行一条，格式不规范也能智能解析。
+            等格式。每行一条，格式不规范时建议使用 AI 整理和解析。
+            <br>
+            <span style="color: var(--warning);">⚠️ 注意：</span>本工具通过 API 检索引用信息，受数据源更新影响，检索结果可能存在滞后，仅供真实性参考。
           </div>
         </div>
         <div>

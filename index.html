@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>引用真伪快速校验（OpenAlex + Crossref）</title>
+    <title>引用校验工具</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
     <style>
       :root {
@@ -678,13 +678,13 @@
       .btn-tooltip {
         position: absolute;
         bottom: calc(100% + 8px);
-        left: 50%;
-        transform: translateX(-50%);
-        background: #1e293b;
-        color: white;
-        padding: 6px 12px;
+        left: 0;
+        transform: none;
+        background: white;
+        color: #1e293b;
+        padding: 10px 14px;
         border-radius: 6px;
-        font-size: 12px;
+        font-size: 13px;
         font-weight: 400;
         white-space: nowrap;
         opacity: 0;
@@ -692,16 +692,31 @@
         transition: opacity 0.15s ease, visibility 0.15s ease;
         z-index: 100;
         pointer-events: none;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        border: 1px solid #e2e8f0;
+        max-width: 800px;
       }
 
       .btn-tooltip::after {
         content: "";
         position: absolute;
         top: 100%;
-        left: 50%;
-        transform: translateX(-50%);
+        left: 20px;
+        transform: none;
         border: 5px solid transparent;
-        border-top-color: #1e293b;
+        border-top-color: white;
+      }
+
+      .btn-tooltip::before {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 20px;
+        transform: none;
+        border: 6px solid transparent;
+        border-top-color: #e2e8f0;
+        margin-top: 1px;
+        z-index: -1;
       }
 
       .btn-tooltip-wrapper:hover .btn-tooltip {
@@ -1234,27 +1249,55 @@
       }
 
       .processing-item {
-        background: linear-gradient(
-          90deg,
-          var(--bg) 25%,
-          var(--card-bg) 50%,
-          var(--bg) 75%
-        );
-        background-size: 200% 100%;
-        animation: shimmer 1.5s infinite;
+        position: relative;
+        background: var(--card-bg);
         border-radius: 12px;
         padding: 16px 20px;
         margin-bottom: 16px;
         border: 1px solid var(--border);
+        overflow: hidden;
       }
 
-      @keyframes shimmer {
-        0% {
-          background-position: 200% 0;
+      .processing-item-progress {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #6366f1, #8b5cf6);
+        transition: width 0.3s ease;
+        opacity: 0.6;
+      }
+
+      .processing-item-status {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        color: var(--text-muted);
+        margin-bottom: 8px;
+      }
+
+      .processing-item-status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #6366f1;
+        animation: pulse 1.5s ease-in-out infinite;
+      }
+
+      @keyframes pulse {
+        0%, 100% {
+          opacity: 1;
         }
-        100% {
-          background-position: -200% 0;
+        50% {
+          opacity: 0.5;
         }
+      }
+
+      .processing-item-text {
+        font-size: 14px;
+        color: var(--text);
+        word-break: break-all;
       }
 
       /* Verdict bar */
@@ -2038,8 +2081,9 @@
             placeholder='在此粘贴引用条目，每行一条。支持多种格式：&#10;&#10;中文 GB/T 7714: 张三. 论文标题[J]. 期刊名, 2020, 10(2): 1-20.&#10;APA: Author, A. A. (2020). Title. Journal, 10(2), 1-20.&#10;IEEE: A. Author, "Title," Journal, vol. 10, no. 2, pp. 1-20, 2020.&#10;MLA: Author. "Title." Journal 10.2 (2020): 1-20.&#10;Vancouver: Author. Title. Journal. 2020;10(2):1-20.'
           ></textarea>
           <div class="hint">
-            💡 提示：支持 GB/T 7714、APA、MLA、IEEE、Chicago、Vancouver、Harvard、Nature、Science、OSA/Optica
-            等格式。每行一条，格式不规范时建议使用 AI 整理和解析。
+            💡 提示：支持 GB/T 7714、APA、MLA、IEEE、Chicago、Vancouver、Harvard、Nature、Science、OSA/Optica、BibTeX 等格式。
+            <br>
+            &nbsp;&nbsp;&nbsp;&nbsp;每行一条（BibTeX 可跨多行），格式不规范时建议使用 AI 整理和解析。
             <br>
             <span style="color: var(--warning);">⚠️ 注意：</span>本工具通过 API 检索引用信息，受数据源更新影响，检索结果可能存在滞后，仅供真实性参考。
           </div>
@@ -5962,7 +6006,7 @@ title, author, ${isArxiv ? 'year' : 'journal, year, volume, issue, firstPage, la
                 </svg>
                 复制 BibTeX
               </button>
-              <span class="btn-tooltip">复制此条目的 BibTeX</span>
+              <span class="btn-tooltip" style="white-space: pre-wrap; font-family: monospace; font-size: 14px; max-width: 800px; text-align: left; line-height: 1.6;">${esc(generateBibTeX(result))}</span>
             </span>
           </div>
         </div>
@@ -6117,28 +6161,145 @@ title, author, ${isArxiv ? 'year' : 'journal, year, volume, issue, firstPage, la
 
         // 先创建所有占位符
         for (let i = 0; i < lines.length; i++) {
-          resultsDiv.innerHTML += `<div class="processing-item" id="processing-${i}">等待校验：${esc(
-            lines[i].slice(0, 60)
-          )}...</div>`;
+          resultsDiv.innerHTML += `
+            <div class="processing-item" id="processing-${i}">
+              <div class="processing-item-status">
+                <span class="processing-item-status-dot"></span>
+                <span id="status-${i}">等待处理</span>
+              </div>
+              <div class="processing-item-text">${esc(lines[i].slice(0, 80))}${lines[i].length > 80 ? '...' : ''}</div>
+              <div class="processing-item-progress" id="progress-${i}" style="width: 0%"></div>
+            </div>
+          `;
+        }
+
+        // 更新条目状态和进度
+        function updateItemStatus(index, status, progress) {
+          const statusEl = document.getElementById(`status-${index}`);
+          const progressEl = document.getElementById(`progress-${index}`);
+          if (statusEl) statusEl.textContent = status;
+          if (progressEl) progressEl.style.width = progress + '%';
         }
 
         // 并发处理函数
         async function processItem(index) {
           const line = lines[index];
 
-          // 更新占位符状态
-          const placeholder = document.getElementById(`processing-${index}`);
-          if (placeholder) {
-            placeholder.textContent = `正在校验：${line.slice(0, 60)}...`;
-          }
-
           try {
-            const result = await verifySingle(line, mailto);
+            // 1. 解析阶段
+            updateItemStatus(index, '解析中...', 25);
+            const useAi = localStorage.getItem(AI_ENABLED_KEY) === "true";
+            const useAiScoring = localStorage.getItem("aiScoringEnabled") === "true";
+            let parsed;
+
+            if (useAi) {
+              // 尝试 AI 解析
+              parsed = await parseWithAI(line);
+              if (!parsed) {
+                // AI 解析失败，回退到规则解析
+                parsed = parseCitation(line);
+              }
+            } else {
+              parsed = parseCitation(line);
+            }
+
+            // 2. 检索阶段
+            updateItemStatus(index, '检索中...', 50);
+            const isArxiv = /arXiv/i.test(line) || /\d{4}\.\d{4,5}/.test(line);
+            const [oa, cr] = await Promise.all([
+              queryOpenAlex(parsed, mailto, isArxiv).catch((e) => ({ __error: e.message })),
+              queryCrossref(parsed, mailto, isArxiv).catch((e) => ({ __error: e.message })),
+            ]);
+
+            // 3. 评分阶段
+            updateItemStatus(index, '评分中...', 75);
+
+            const oaItems = oa?.results || [];
+            const crItems = cr?.message?.items || [];
+
+            const oaScoreFn = isArxiv ? scoreOpenAlexWorkArxiv : scoreOpenAlexWork;
+            const crScoreFn = isArxiv ? scoreCrossrefItemArxiv : scoreCrossrefItem;
+
+            const oaBest = pickBest(oaItems, (w) => oaScoreFn(parsed, w));
+            const crBest = pickBest(crItems, (it) => crScoreFn(parsed, it));
+
+            let oaRuleScore = oaBest?.best ? oaBest.bestScore : 0;
+            let crRuleScore = crBest?.best ? crBest.bestScore : 0;
+            let aiScoringResult = null;
+
+            // 如果启用 AI 评分，调用 AI 进行评分（添加超时保护）
+            if (useAiScoring && (oaBest?.best || crBest?.best)) {
+              try {
+                // 添加 30 秒超时
+                const timeoutPromise = new Promise((_, reject) =>
+                  setTimeout(() => reject(new Error('AI 评分超时')), 30000)
+                );
+                aiScoringResult = await Promise.race([
+                  scoreWithAI(line, parsed, oaBest?.best, crBest?.best, isArxiv),
+                  timeoutPromise
+                ]);
+                if (aiScoringResult) {
+                  // 保存 AI 评分详情
+                  if (aiScoringResult.openAlex !== null && oaBest) {
+                    oaBest.aiDetails = aiScoringResult.openAlex.details;
+                    oaBest.aiScore = aiScoringResult.openAlex.total;
+                  }
+                  if (aiScoringResult.crossref !== null && crBest) {
+                    crBest.aiDetails = aiScoringResult.crossref.details;
+                    crBest.aiScore = aiScoringResult.crossref.total;
+                  }
+                }
+              } catch (e) {
+                console.error("AI 评分失败:", e.message);
+                // AI 评分失败，继续使用规则评分
+              }
+            }
+
+            // 计算综合评分：使用 max(规则评分, AI评分) 作为各字段的最终分数
+            const oaScore = Math.max(oaRuleScore, oaBest?.aiScore || 0);
+            const crScore = Math.max(crRuleScore, crBest?.aiScore || 0);
+
+            // 赢者通吃：综合评分 = max(OA, CR)
+            const highSource = oaScore >= crScore ? "openAlex" : "crossref";
+            const combined = Math.max(oaScore, crScore);
+            const combinedDetails = {
+              openAlex: {
+                score: oaScore,
+                weight: highSource === "openAlex" ? 1.0 : 0,
+                weighted: highSource === "openAlex" ? oaScore : 0,
+              },
+              crossref: {
+                score: crScore,
+                weight: highSource === "crossref" ? 1.0 : 0,
+                weighted: highSource === "crossref" ? crScore : 0,
+              },
+            };
+
+            const result = {
+              raw: line,
+              parsed,
+              oaBest,
+              crBest,
+              oaScore,
+              crScore,
+              combined,
+              combinedDetails,
+              verdict: getVerdict(combined),
+              isArxiv,
+              useAiScoring: aiScoringResult !== null,
+            };
+
             results[index] = result;
 
+            // 4. 完成
+            updateItemStatus(index, '完成', 100);
+
             // 替换占位为真实结果
+            const placeholder = document.getElementById(`processing-${index}`);
             if (placeholder) {
-              placeholder.outerHTML = renderResult(result, index);
+              setTimeout(() => {
+                placeholder.outerHTML = renderResult(result, index);
+              }, 200);
             }
           } catch (e) {
             const errorResult = {
@@ -6153,8 +6314,13 @@ title, author, ${isArxiv ? 'year' : 'journal, year, volume, issue, firstPage, la
             };
             results[index] = errorResult;
 
+            updateItemStatus(index, '错误: ' + e.message, 100);
+
+            const placeholder = document.getElementById(`processing-${index}`);
             if (placeholder) {
-              placeholder.outerHTML = renderResult(errorResult, index);
+              setTimeout(() => {
+                placeholder.outerHTML = renderResult(errorResult, index);
+              }, 200);
             }
           }
 
@@ -6875,7 +7041,7 @@ ${text}
                 </svg>
                 复制 BibTeX
               </button>
-              <span class="btn-tooltip">复制此条目的 BibTeX</span>
+              <span class="btn-tooltip" style="white-space: pre-wrap; font-family: monospace; font-size: 14px; max-width: 800px; text-align: left; line-height: 1.6;">${esc(generateBibTeXFromParsed(parsed))}</span>
             </span>
           </div>
         </div>

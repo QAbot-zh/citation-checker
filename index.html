@@ -63,6 +63,95 @@
         margin: 0 auto;
       }
 
+      .feature-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: center;
+        margin-top: 16px;
+      }
+
+      .feature-pill {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1));
+        border: 1px solid rgba(99, 102, 241, 0.3);
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(99, 102, 241, 0.1);
+      }
+
+      .feature-pill:hover {
+        border-color: var(--primary);
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(139, 92, 246, 0.15));
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+      }
+
+      .feature-pill-icon {
+        font-size: 16px;
+      }
+
+      .feature-pill-tooltip {
+        position: absolute;
+        bottom: calc(100% + 8px);
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px 14px;
+        font-size: 12px;
+        color: var(--text-muted);
+        white-space: nowrap;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        z-index: 100;
+      }
+
+      .feature-pill-tooltip::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        border: 6px solid transparent;
+        border-top-color: var(--border);
+      }
+
+      .feature-pill:hover .feature-pill-tooltip {
+        opacity: 1;
+      }
+
+      .warning-pill {
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.1));
+        border-color: rgba(239, 68, 68, 0.3);
+      }
+
+      .warning-pill:hover {
+        border-color: var(--danger);
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(220, 38, 38, 0.15));
+      }
+
+      .info-pill {
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.1));
+        border-color: rgba(16, 185, 129, 0.3);
+      }
+
+      .info-pill:hover {
+        border-color: var(--success);
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.15));
+      }
+
       .card {
         background: var(--card-bg);
         border-radius: 16px;
@@ -1733,10 +1822,40 @@
   <body>
     <div class="header">
       <h1>引用真伪快速校验</h1>
-      <p>
-        基于 OpenAlex 与 Crossref 双源交叉验证，智能解析引用字段并评估可信度，支持 GB/T 7714、APA、MLA、IEEE、Chicago 等多种主流格式，支持 AI 增强条目整理、字段解析、评分等环节。
-        <span style="color: var(--danger);">低可信度表示未匹配到文献，可能因文献不存在或未被数据源收录（中文文献尤甚），也可能因字段解析错误（尤其是标题项），欢迎反馈；中可信度建议查看评分细项定位低分项，并核对引用格式及文献信息是否更新。</span>
-      </p>
+      <div class="feature-pills">
+        <span class="feature-pill">
+          <span class="feature-pill-icon">🔍</span>
+          检索来源
+          <span class="feature-pill-tooltip">基于 OpenAlex 与 Crossref 双源交叉验证，提高匹配准确率和覆盖范围</span>
+        </span>
+        <span class="feature-pill">
+          <span class="feature-pill-icon">📝</span>
+          格式支持
+          <span class="feature-pill-tooltip">智能识别 GB/T 7714、APA、MLA、IEEE、Chicago、Vancouver 等多种主流引用格式，支持中英文</span>
+        </span>
+        <span class="feature-pill">
+          <span class="feature-pill-icon">🤖</span>
+          AI 增强
+          <span class="feature-pill-tooltip">可选配置 AI 增强条目整理、字段解析、智能评分等功能，提升复杂格式处理能力</span>
+        </span>
+      </div>
+      <div class="feature-pills" style="margin-top: 12px;">
+        <span class="feature-pill info-pill">
+          <span class="feature-pill-icon">⚙️</span>
+          打分标准
+          <span class="feature-pill-tooltip">支持启用/禁用评分字段，权重自动归一化重新分配；采用赢者通吃策略（取 OpenAlex 和 Crossref 最高分）</span>
+        </span>
+        <span class="feature-pill warning-pill">
+          <span class="feature-pill-icon">⚠️</span>
+          低可信度
+          <span class="feature-pill-tooltip">可能因文献不存在、未被数据源收录（中文文献尤甚）或字段解析错误（尤其是标题项）导致</span>
+        </span>
+        <span class="feature-pill warning-pill">
+          <span class="feature-pill-icon">ℹ️</span>
+          中可信度
+          <span class="feature-pill-tooltip">建议查看评分细项定位低分字段，核对引用格式及文献信息是否准确完整</span>
+        </span>
+      </div>
     </div>
 
     <div class="card">

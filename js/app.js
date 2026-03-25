@@ -71,6 +71,7 @@ function enableAllFields() {
     cb.closest("tr").classList.remove("field-disabled");
   }
   updateWeightDisplay();
+  refreshAllResults();
 }
 
 /** ---------- 工具函数 ---------- */
@@ -2680,8 +2681,9 @@ function scoreOpenAlexWorkArxiv(p, w) {
   const weights = getActiveWeights(true);
   let total = 0;
   const details = {};
-  for (const [field, wt] of Object.entries(weights)) {
+  for (const field of Object.keys(scores)) {
     const s = scores[field] ?? 0;
+    const wt = weights[field] ?? 0;
     total += wt * s;
     details[field] = { score: s, weight: wt, weighted: wt * s };
   }
@@ -2756,8 +2758,9 @@ function scoreOpenAlexWork(p, w) {
   const weights = getActiveWeights(false);
   let total = 0;
   const details = {};
-  for (const [field, wt] of Object.entries(weights)) {
+  for (const field of Object.keys(scores)) {
     const s = scores[field] ?? 0;
+    const wt = weights[field] ?? 0;
     total += wt * s;
     details[field] = { score: s, weight: wt, weighted: wt * s };
   }
@@ -2780,8 +2783,9 @@ function scoreCrossrefItemArxiv(p, it) {
   const weights = getActiveWeights(true);
   let total = 0;
   const details = {};
-  for (const [field, wt] of Object.entries(weights)) {
+  for (const field of Object.keys(scores)) {
     const s = scores[field] ?? 0;
+    const wt = weights[field] ?? 0;
     total += wt * s;
     details[field] = { score: s, weight: wt, weighted: wt * s };
   }
@@ -2853,8 +2857,9 @@ function scoreCrossrefItem(p, it) {
   const weights = getActiveWeights(false);
   let total = 0;
   const details = {};
-  for (const [field, wt] of Object.entries(weights)) {
+  for (const field of Object.keys(scores)) {
     const s = scores[field] ?? 0;
+    const wt = weights[field] ?? 0;
     total += wt * s;
     details[field] = { score: s, weight: wt, weighted: wt * s };
   }
@@ -2866,6 +2871,86 @@ function getVerdict(score) {
   if (score >= 0.78) return { level: "high", text: "高可信", desc: "强匹配" };
   if (score >= 0.55) return { level: "medium", text: "中可信", desc: "需核对" };
   return { level: "low", text: "低可信", desc: "可能伪造" };
+}
+
+/** ---------- 重算评分（字段启用状态变更时） ---------- */
+
+// 根据 details 中保存的原始 score 和当前活跃权重重新计算加权总分
+function recalcWeightedTotal(details, isArxiv) {
+  if (!details) return { total: 0, details: null };
+  const weights = getActiveWeights(isArxiv);
+  let total = 0;
+  const newDetails = {};
+  for (const [field, val] of Object.entries(details)) {
+    const s = val.score ?? 0;
+    const wt = weights[field] ?? 0;
+    total += wt * s;
+    newDetails[field] = { score: s, weight: wt, weighted: wt * s };
+  }
+  return { total, details: newDetails };
+}
+
+// 重算单个 result 的评分并更新其字段
+function recalcResultScores(result) {
+  if (!result) return;
+  const isArxiv = result.isArxiv || false;
+
+  // 重算 OpenAlex 规则评分
+  if (result.oaBest?.bestDetails) {
+    const recalc = recalcWeightedTotal(result.oaBest.bestDetails, isArxiv);
+    result.oaBest.bestScore = recalc.total;
+    result.oaBest.bestDetails = recalc.details;
+  }
+  const oaRuleScore = result.oaBest?.bestScore || 0;
+
+  // 重算 Crossref 规则评分
+  if (result.crBest?.bestDetails) {
+    const recalc = recalcWeightedTotal(result.crBest.bestDetails, isArxiv);
+    result.crBest.bestScore = recalc.total;
+    result.crBest.bestDetails = recalc.details;
+  }
+  const crRuleScore = result.crBest?.bestScore || 0;
+
+  // 综合评分（max(规则, AI)）
+  result.oaScore = Math.max(oaRuleScore, result.oaBest?.aiScore || 0);
+  result.crScore = Math.max(crRuleScore, result.crBest?.aiScore || 0);
+
+  const highSource = result.oaScore >= result.crScore ? "openAlex" : "crossref";
+  result.combined = Math.max(result.oaScore, result.crScore);
+  result.combinedDetails = {
+    openAlex: {
+      score: result.oaScore,
+      weight: highSource === "openAlex" ? 1.0 : 0,
+      weighted: highSource === "openAlex" ? result.oaScore : 0,
+    },
+    crossref: {
+      score: result.crScore,
+      weight: highSource === "crossref" ? 1.0 : 0,
+      weighted: highSource === "crossref" ? result.crScore : 0,
+    },
+  };
+  result.verdict = getVerdict(result.combined);
+}
+
+// 刷新所有已有结果的评分和 UI
+function refreshAllResults() {
+  const results = window.currentResults;
+  if (!results || results.length === 0) return;
+
+  for (let i = 0; i < results.length; i++) {
+    recalcResultScores(results[i]);
+    const item = document.querySelector(`.result-item[data-index="${i}"]`);
+    if (item) {
+      const newHtml = renderResult(results[i], i);
+      const temp = document.createElement("div");
+      temp.innerHTML = newHtml;
+      const newItem = temp.firstElementChild;
+      item.replaceWith(newItem);
+    }
+  }
+
+  // 更新统计摘要
+  updateStats(results);
 }
 
 /** ---------- AI 评分 ---------- */
@@ -3189,26 +3274,29 @@ function renderScoreTooltip(ruleDetails, aiDetails, aiTotal) {
     const aiVal = aiDetails?.[key];
     const label = labels[key] || key;
     const weight = ruleVal?.weight || aiVal?.weight || 0;
+    const isDisabled = weight === 0;
 
     const ruleScore = ruleVal?.score ?? 0;
     const aiScore = aiVal?.score ?? 0;
 
     ruleTotal += ruleScore * weight;
 
+    const disabledStyle = isDisabled ? "opacity:0.4;text-decoration:line-through;" : "";
+
     if (aiDetails) {
       // 同时显示规则和 AI 评分
       rows += `
-      <div class="score-tooltip-row">
+      <div class="score-tooltip-row" style="${disabledStyle}">
         <span class="score-tooltip-label">${label} (${(weight * 100).toFixed(0)}%)</span>
-        <span class="score-tooltip-value ${getScoreClass(ruleScore)}">${ruleScore.toFixed(2)}</span>
-        <span class="score-tooltip-value ${aiVal ? getScoreClass(aiScore) : ""}">${aiVal ? aiScore.toFixed(2) : "-"}</span>
+        <span class="score-tooltip-value ${isDisabled ? "" : getScoreClass(ruleScore)}">${ruleScore.toFixed(2)}</span>
+        <span class="score-tooltip-value ${isDisabled ? "" : (aiVal ? getScoreClass(aiScore) : "")}">${aiVal ? aiScore.toFixed(2) : "-"}</span>
       </div>`;
     } else {
       // 只显示规则评分
       rows += `
-      <div class="score-tooltip-row">
+      <div class="score-tooltip-row" style="${disabledStyle}">
         <span class="score-tooltip-label">${label} (${(weight * 100).toFixed(0)}%)</span>
-        <span class="score-tooltip-value ${getScoreClass(ruleScore)}">${ruleScore.toFixed(2)} × ${weight.toFixed(2)} = ${(ruleScore * weight).toFixed(3)}</span>
+        <span class="score-tooltip-value ${isDisabled ? "" : getScoreClass(ruleScore)}">${ruleScore.toFixed(2)} × ${weight.toFixed(2)} = ${(ruleScore * weight).toFixed(3)}</span>
       </div>`;
     }
   }
@@ -5066,6 +5154,7 @@ document.getElementById("aiConfigModal").addEventListener("click", (e) => {
         JSON.stringify([...disabledFields]),
       );
       updateWeightDisplay();
+      refreshAllResults();
     });
   }
   updateWeightDisplay();

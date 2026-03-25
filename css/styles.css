@@ -545,6 +545,31 @@ textarea {
   flex: 1;
 }
 
+.citation-count {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: right;
+  margin-top: 4px;
+  min-height: 0;
+}
+
+.citation-count:empty {
+  display: none;
+}
+
+.citation-count-num {
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.citation-count-num.ok {
+  color: var(--success);
+}
+
+.citation-count-hint {
+  color: var(--warning);
+}
+
 .hint {
   font-size: 12px;
   color: var(--text-muted);

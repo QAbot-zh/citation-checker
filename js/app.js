@@ -3684,6 +3684,112 @@ function updateProgress(current, total, status) {
   document.getElementById("progressStatus").textContent = status;
 }
 
+/** ---------- 智能分割引用条目 ---------- */
+function smartSplitCitations(text) {
+  const entries = [];
+
+  // 快速路径：显式编号前缀 [1], [2]... 直接按前缀切割，合并内部换行
+  if (/^\s*\[\d+\]/m.test(text)) {
+    let currentEntry = "";
+    for (const line of text.split("\n")) {
+      const trimmed = line.trim();
+      if (/^\[\d+\]/.test(trimmed)) {
+        if (currentEntry.trim()) entries.push(currentEntry.trim());
+        currentEntry = trimmed;
+      } else if (trimmed) {
+        currentEntry = joinLines(currentEntry, trimmed);
+      }
+    }
+    if (currentEntry.trim()) entries.push(currentEntry.trim());
+    return entries;
+  }
+
+  const lines = text.split("\n");
+  let currentEntry = "";
+  let inBibTeX = false;
+  let braceCount = 0;
+
+  for (let line of lines) {
+    const trimmed = line.trim();
+
+    // 检测 BibTeX 开始
+    if (trimmed.startsWith("@")) {
+      // 如果之前有未完成的条目，先保存
+      if (currentEntry.trim()) {
+        entries.push(currentEntry.trim());
+      }
+      currentEntry = line;
+      inBibTeX = true;
+      braceCount =
+        (line.match(/{/g) || []).length - (line.match(/}/g) || []).length;
+    } else if (inBibTeX) {
+      // 在 BibTeX 条目中，继续累积
+      currentEntry += "\n" + line;
+      braceCount +=
+        (line.match(/{/g) || []).length - (line.match(/}/g) || []).length;
+
+      // 检查是否完成（大括号匹配）
+      if (braceCount <= 0) {
+        entries.push(currentEntry.trim());
+        currentEntry = "";
+        inBibTeX = false;
+      }
+    } else {
+      // 普通引用：使用 detectNewEntry 智能合并多行
+      if (!trimmed) {
+        // 空行：结束当前条目
+        if (currentEntry.trim()) {
+          entries.push(currentEntry.trim());
+          currentEntry = "";
+        }
+        continue;
+      }
+
+      if (detectNewEntry(trimmed, currentEntry ? [currentEntry] : [])) {
+        // 新条目开始
+        if (currentEntry.trim()) {
+          entries.push(currentEntry.trim());
+        }
+        currentEntry = trimmed;
+      } else {
+        // 续行：合并到当前条目（处理连字符断词）
+        currentEntry = joinLines(currentEntry, trimmed);
+      }
+    }
+  }
+
+  // 处理最后一个条目
+  if (currentEntry.trim()) {
+    entries.push(currentEntry.trim());
+  }
+
+  return entries;
+}
+
+/** ---------- 引用计数显示 ---------- */
+let citationFormatted = false;
+let _citationCountTimer = null;
+
+function updateCitationCount() {
+  const text = document.getElementById("citation").value;
+  const el = document.getElementById("citationCount");
+  if (!text.trim()) { el.innerHTML = ""; el.className = "citation-count"; return; }
+  const count = smartSplitCitations(text).length;
+  if (citationFormatted) {
+    el.innerHTML = `检测到 <span class="citation-count-num ok">${count}</span> 条引用（已整理）`;
+    el.className = "citation-count";
+  } else {
+    el.innerHTML = `检测到 <span class="citation-count-num">${count}</span> 条引用<span class="citation-count-hint">，如数量不符建议手动整理或使用 AI 辅助整理引用</span>`;
+    el.className = "citation-count";
+  }
+}
+
+document.getElementById("citation").addEventListener("input", () => {
+  citationFormatted = false;
+  clearTimeout(_citationCountTimer);
+  _citationCountTimer = setTimeout(updateCitationCount, 300);
+});
+
 /** ---------- 主逻辑 ---------- */
 document.getElementById("run").addEventListener("click", async () => {
   const btn = document.getElementById("run");
@@ -3693,55 +3799,6 @@ document.getElementById("run").addEventListener("click", async () => {
 
   const rawText = document.getElementById("citation").value;
   const mailto = document.getElementById("mailto").value.trim();
-
-  // 智能分割输入：识别 BibTeX 条目（跨多行）和普通引用（单行）
-  function smartSplitCitations(text) {
-    const entries = [];
-    const lines = text.split("\n");
-    let currentEntry = "";
-    let inBibTeX = false;
-    let braceCount = 0;
-
-    for (let line of lines) {
-      const trimmed = line.trim();
-
-      // 检测 BibTeX 开始
-      if (trimmed.startsWith("@")) {
-        // 如果之前有未完成的条目，先保存
-        if (currentEntry.trim()) {
-          entries.push(currentEntry.trim());
-        }
-        currentEntry = line;
-        inBibTeX = true;
-        braceCount =
-          (line.match(/{/g) || []).length - (line.match(/}/g) || []).length;
-      } else if (inBibTeX) {
-        // 在 BibTeX 条目中，继续累积
-        currentEntry += "\n" + line;
-        braceCount +=
-          (line.match(/{/g) || []).length - (line.match(/}/g) || []).length;
-
-        // 检查是否完成（大括号匹配）
-        if (braceCount <= 0) {
-          entries.push(currentEntry.trim());
-          currentEntry = "";
-          inBibTeX = false;
-        }
-      } else {
-        // 普通引用，每行一条
-        if (trimmed) {
-          entries.push(trimmed);
-        }
-      }
-    }
-
-    // 处理最后一个条目
-    if (currentEntry.trim()) {
-      entries.push(currentEntry.trim());
-    }
-
-    return entries;
-  }
 
   // 解析多行，过滤空行
   const lines = smartSplitCitations(rawText);
@@ -3998,6 +4055,8 @@ document.getElementById("clear").addEventListener("click", () => {
   document.getElementById("progress").classList.remove("active");
   document.getElementById("exportSection").classList.remove("active");
   window.currentResults = [];
+  citationFormatted = false;
+  updateCitationCount();
 });
 
 /** ---------- 文本整理功能 ---------- */
@@ -4023,6 +4082,8 @@ document.getElementById("formatText").addEventListener("click", () => {
     try {
       const formatted = formatCitationText(rawText);
       textarea.value = formatted;
+      citationFormatted = true;
+      updateCitationCount();
 
       // 统计处理结果
       const lineCount = formatted.split("\n").filter((l) => l.trim()).length;
@@ -4057,7 +4118,23 @@ function formatCitationText(text) {
 
   // 4. 智能识别条目边界并合并
   const entries = [];
-  let currentEntry = [];
+
+  // 快速路径：显式编号前缀 [1], [2]... 直接按前缀切割
+  const hasNumberedPrefix = lines.some((l) => /^\[\d+\]/.test(l));
+  if (hasNumberedPrefix) {
+    let currentEntry = "";
+    for (const line of lines) {
+      if (!line) continue;
+      if (/^\[\d+\]/.test(line)) {
+        if (currentEntry.trim()) entries.push(currentEntry.trim());
+        currentEntry = line;
+      } else {
+        currentEntry = joinLines(currentEntry, line);
+      }
+    }
+    if (currentEntry.trim()) entries.push(currentEntry.trim());
+  } else {
+    let currentEntry = [];
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -4088,6 +4165,7 @@ function formatCitationText(text) {
   if (currentEntry.length > 0) {
     entries.push(currentEntry.join(" "));
   }
+  }
 
   // 5. 清理每个条目
   const cleanedEntries = entries
@@ -4105,21 +4183,62 @@ function formatCitationText(text) {
 }
 
 /**
+ * 合并两行文本，处理连字符断词
+ * 规则：已知构词前缀保留连字符，其余视为排版断词直接拼接
+ */
+function joinLines(prev, next) {
+  if (!prev) return next;
+
+  // 连字符断词检测：上一行以各种连字符/软连字符结尾
+  const hyphenRe = /[-\u00AD\u2010\u2011\u2012\u2013\u2014\u2015\u2212]$/;
+  if (hyphenRe.test(prev)) {
+    const lastWord = prev.slice(prev.lastIndexOf(" ") + 1, -1); // 去掉末尾连字符
+
+    // 已知构词前缀 → 保留连字符 (semi- + supervised → semi-supervised)
+    const knownPrefixes =
+      /^(self|semi|non|multi|pre|post|re|co|over|under|cross|day|night|depth|real|mono|bi|tri|sub|super|inter|intra|anti|auto|de|dis|mis|out|un|mid|well|high|low|long|short|full|half|near|far|hard|soft|fast|slow|open|end|fine)$/i;
+    if (knownPrefixes.test(lastWord)) {
+      return prev + next;
+    }
+
+    // 默认：排版断词，移除连字符 (estima- + tion → estimation)
+    return prev.slice(0, -1) + next;
+  }
+
+  // 普通续行：用空格连接
+  return prev + " " + next;
+}
+
+/**
  * 检测一行是否是新条目的开始
  */
 function detectNewEntry(line, currentEntry) {
   if (currentEntry.length === 0) return true;
 
-  // 1. 以序号开头：[1], 1., 1), (1), [1]
-  if (/^\s*[\[(]?\d+[\].):\s]/.test(line)) return true;
+  // 1. 以序号开头：[1], 1., 1), (1), [1]（排除年份如 (2022)）
+  const numMatch = line.match(/^\s*[\[(]?(\d+)[\].):\s]/);
+  if (numMatch && parseInt(numMatch[1], 10) < 1000) return true;
 
-  // 2. 以作者名开头的常见模式
+  // 2. 上一行以逗号、分号、介词等结尾 → 条目未完成，当前行是续行
+  const prevText = currentEntry.join ? currentEntry.join(" ") : currentEntry;
+  if (/[,;]\s*$/.test(prevText)) return false;
+  if (
+    /\b(in|of|on|for|and|the|a|an|with|from|by|to|at|as|or|using|via|based|IEEE|ACM)\s*$/i.test(
+      prevText
+    )
+  )
+    return false;
+
+  // 3. 以作者名开头的常见模式
   // 中文作者：2-4个汉字开头
   if (/^[\u4e00-\u9fa5]{2,4}[,，.]/.test(line)) return true;
 
   // 西方作者：Lastname, F. 或 F. Lastname
   if (/^[A-Z][a-z]+,\s*[A-Z]\./.test(line)) return true;
   if (/^[A-Z]\.\s*[A-Z]?\.?\s*[A-Z][a-z]+/.test(line)) return true;
+
+  // 续行特征：小写字母开头（非新条目）
+  if (/^[a-z]/.test(line)) return false;
 
   // 3. 检查当前条目是否已经"完整"
   const currentText = currentEntry.join(" ");
@@ -4171,6 +4290,8 @@ document.getElementById("aiFormatText").addEventListener("click", async () => {
     const formatted = await formatCitationTextWithAI(rawText, config);
     if (formatted) {
       textarea.value = formatted;
+      citationFormatted = true;
+      updateCitationCount();
       const lineCount = formatted.split("\n").filter((l) => l.trim()).length;
       showToast(`AI 整理完成，共 ${lineCount} 条引用`);
     } else {

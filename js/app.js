@@ -826,7 +826,34 @@ function downloadFile(content, filename) {
   URL.revokeObjectURL(url);
 }
 
+// 带超时的 fetch：超时后通过 AbortController 真正中止请求，避免僵尸连接
+async function fetchWithTimeout(input, init = {}, timeoutMs = 30000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } catch (e) {
+    if (e.name === "AbortError") {
+      throw new Error(`请求超时（${Math.round(timeoutMs / 1000)}s）`);
+    }
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /** ---------- 解析引用 ---------- */
+// 检测是否为 arXiv 引用：关键字命中，或独立的 YYYY.NNNNN ID（不在 DOI / URL 中）
+function detectArxiv(raw) {
+  if (!raw) return false;
+  if (/\barXiv\b/i.test(raw) || /\barxiv\.org\b/i.test(raw)) return true;
+  // 剥除 DOI 和 URL 后再检测 arXiv ID 形式，避免 10.1109/LRA.2026.3678455 这类 DOI 误判
+  const stripped = raw
+    .replace(/\b10\.\d{4,9}\/[^\s,;"\]>]+/gi, "")
+    .replace(/https?:\/\/[^\s]+/gi, "");
+  return /(?:^|[\s\[(,;])\d{4}\.\d{4,5}(?=$|[\s\]);,.])/.test(stripped);
+}
+
 /** ---------- BibTeX 格式解析 ---------- */
 function parseBibTeXFormat(raw) {
   try {
@@ -1017,9 +1044,8 @@ function parseCitation(raw) {
   // Nature/Science 格式：Journal Volume, Pages (Year)
   const hasNatureScienceStyle =
     /[A-Z][A-Za-z.\s&]+\s+\d+,\s*\d+[-–—]?\d*\s*\(\d{4}\)/.test(s);
-  // arXiv 格式检测：包含 arXiv 或 arxiv.org
-  const hasArxivStyle =
-    /arXiv/i.test(s) || /arxiv\.org/i.test(s) || /\d{4}\.\d{4,5}/.test(s);
+  // arXiv 格式检测：关键字或独立 arXiv ID（排除 DOI 中的数字）
+  const hasArxivStyle = detectArxiv(s);
 
   let title = null;
   let journal = null;
@@ -3064,18 +3090,22 @@ title, author, ${isArxiv ? "year" : "journal, year, volume, issue, firstPage, la
 
 只返回 JSON，不要其他内容。`;
 
-  const response = await fetch(`${config.baseUrl}/chat/completions`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${config.apiKey}`,
+  const response = await fetchWithTimeout(
+    `${config.baseUrl}/chat/completions`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${config.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: config.model || "gpt-4o-mini",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.1,
+      }),
     },
-    body: JSON.stringify({
-      model: config.model || "gpt-4o-mini",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.1,
-    }),
-  });
+    30000,
+  );
 
   if (!response.ok) {
     throw new Error(`AI API 错误: ${response.status}`);
@@ -3141,7 +3171,7 @@ async function verifySingle(raw, mailto) {
   }
 
   // 外部检测是否是 arXiv 相关引用（传入两个 query 函数）
-  const isArxiv = /arXiv/i.test(raw) || /\d{4}\.\d{4,5}/.test(raw);
+  const isArxiv = detectArxiv(raw);
 
   const [oa, cr] = await Promise.all([
     queryOpenAlex(p, mailto, isArxiv).catch((e) => ({
@@ -3166,17 +3196,16 @@ async function verifySingle(raw, mailto) {
   let crRuleScore = crBest?.best ? crBest.bestScore : 0;
   let aiScoringResult = null;
 
-  // 如果启用 AI 评分，调用 AI 进行评分（添加超时保护）
+  // 如果启用 AI 评分，调用 AI 进行评分（scoreWithAI 内部已有 30s 超时）
   if (useAiScoring && (oaBest?.best || crBest?.best)) {
     try {
-      // 添加 30 秒超时
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("AI 评分超时")), 30000),
+      aiScoringResult = await scoreWithAI(
+        raw,
+        p,
+        oaBest?.best,
+        crBest?.best,
+        isArxiv,
       );
-      aiScoringResult = await Promise.race([
-        scoreWithAI(raw, p, oaBest?.best, crBest?.best, isArxiv),
-        timeoutPromise,
-      ]);
       if (aiScoringResult) {
         // 保存 AI 评分详情
         if (aiScoringResult.openAlex !== null && oaBest) {
@@ -3253,8 +3282,9 @@ function renderScoreTooltip(ruleDetails, aiDetails, aiTotal) {
     return "bad";
   };
 
-  // 使用规则评分的字段顺序
-  const allKeys = Object.keys(ruleDetails || aiDetails || {});
+  // 统一按 BASE_WEIGHTS 定义的字段顺序渲染，避免两个数据源 tooltip 顺序不一致
+  const present = new Set(Object.keys(ruleDetails || aiDetails || {}));
+  const allKeys = Object.keys(BASE_WEIGHTS).filter((k) => present.has(k));
 
   let rows = "";
   let ruleTotal = 0;
@@ -3881,7 +3911,7 @@ document.getElementById("run").addEventListener("click", async () => {
 
       // 2. 检索阶段
       updateItemStatus(index, "检索中...", 50);
-      const isArxiv = /arXiv/i.test(line) || /\d{4}\.\d{4,5}/.test(line);
+      const isArxiv = detectArxiv(line);
       const [oa, cr] = await Promise.all([
         queryOpenAlex(parsed, mailto, isArxiv).catch((e) => ({
           __error: e.message,
@@ -3907,17 +3937,16 @@ document.getElementById("run").addEventListener("click", async () => {
       let crRuleScore = crBest?.best ? crBest.bestScore : 0;
       let aiScoringResult = null;
 
-      // 如果启用 AI 评分，调用 AI 进行评分（添加超时保护）
+      // 如果启用 AI 评分，调用 AI 进行评分（scoreWithAI 内部已有 30s 超时）
       if (useAiScoring && (oaBest?.best || crBest?.best)) {
         try {
-          // 添加 30 秒超时
-          const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error("AI 评分超时")), 30000),
+          aiScoringResult = await scoreWithAI(
+            line,
+            parsed,
+            oaBest?.best,
+            crBest?.best,
+            isArxiv,
           );
-          aiScoringResult = await Promise.race([
-            scoreWithAI(line, parsed, oaBest?.best, crBest?.best, isArxiv),
-            timeoutPromise,
-          ]);
           if (aiScoringResult) {
             // 保存 AI 评分详情
             if (aiScoringResult.openAlex !== null && oaBest) {
@@ -4326,18 +4355,22 @@ ${text}
 
 请直接返回整理后的引用列表，不要添加任何解释或说明。每条引用一行，条目之间空一行。`;
 
-  const response = await fetch(`${config.baseUrl}/chat/completions`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${config.apiKey}`,
+  const response = await fetchWithTimeout(
+    `${config.baseUrl}/chat/completions`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${config.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: config.model || "gpt-4o-mini",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.1,
+      }),
     },
-    body: JSON.stringify({
-      model: config.model || "gpt-4o-mini",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.1,
-    }),
-  });
+    60000,
+  );
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
@@ -4959,18 +4992,22 @@ async function testAiConfig() {
   showPersistentToast("正在测试连接...");
 
   try {
-    const response = await fetch(`${baseUrl}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
+    const response = await fetchWithTimeout(
+      `${baseUrl}/chat/completions`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: model,
+          messages: [{ role: "user", content: "Hi" }],
+          max_tokens: 5,
+        }),
       },
-      body: JSON.stringify({
-        model: model,
-        messages: [{ role: "user", content: "Hi" }],
-        max_tokens: 5,
-      }),
-    });
+      15000,
+    );
 
     if (response.ok) {
       dismissPersistentToast("连接成功！");
@@ -5001,9 +5038,11 @@ async function fetchModelList() {
 
   try {
     const url = baseUrl.replace(/\/+$/, "") + "/models";
-    const response = await fetch(url, {
-      headers: { Authorization: `Bearer ${apiKey}` },
-    });
+    const response = await fetchWithTimeout(
+      url,
+      { headers: { Authorization: `Bearer ${apiKey}` } },
+      15000,
+    );
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
@@ -5168,18 +5207,22 @@ ${raw}
 {"title": "...", "authors": ["..."], "year": 2020, "journal": "...", "volume": "1", "issue": "2", "firstPage": "10", "lastPage": "20"}`;
 
   try {
-    const response = await fetch(`${config.baseUrl}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${config.apiKey}`,
+    const response = await fetchWithTimeout(
+      `${config.baseUrl}/chat/completions`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${config.apiKey}`,
+        },
+        body: JSON.stringify({
+          model: config.model || "gpt-4o-mini",
+          messages: [{ role: "user", content: prompt }],
+          temperature: config.temperature ?? 0.1,
+        }),
       },
-      body: JSON.stringify({
-        model: config.model || "gpt-4o-mini",
-        messages: [{ role: "user", content: prompt }],
-        temperature: config.temperature ?? 0.1,
-      }),
-    });
+      30000,
+    );
 
     if (!response.ok) {
       console.error("AI 解析失败:", response.status);
@@ -5193,6 +5236,11 @@ ${raw}
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
+
+      // AI 不识别 DOI，用规则从原始文本兜底匹配
+      const doiMatch = raw.match(/\b(10\.\d{4,9}\/[^\s,;"\]>]+)/i);
+      const doi = doiMatch ? doiMatch[1].replace(/[.,;>\]]+$/, "") : null;
+
       return {
         raw: raw,
         title: parsed.title || null,
@@ -5203,6 +5251,7 @@ ${raw}
         issue: parsed.issue ? String(parsed.issue) : null,
         firstPage: parsed.firstPage ? String(parsed.firstPage) : null,
         lastPage: parsed.lastPage ? String(parsed.lastPage) : null,
+        doi,
         format: "AI 解析",
       };
     }
@@ -5216,6 +5265,16 @@ ${raw}
 // 温度滑块事件
 document.getElementById("aiTemperature").addEventListener("input", (e) => {
   document.getElementById("aiTempValue").textContent = e.target.value;
+});
+
+// API Key 显示/隐藏切换
+document.getElementById("aiApiKeyToggle").addEventListener("click", () => {
+  const input = document.getElementById("aiApiKey");
+  const btn = document.getElementById("aiApiKeyToggle");
+  const isHidden = input.type === "password";
+  input.type = isHidden ? "text" : "password";
+  btn.querySelector(".eye-open").style.display = isHidden ? "none" : "";
+  btn.querySelector(".eye-closed").style.display = isHidden ? "" : "none";
 });
 
 // AI 复选框事件

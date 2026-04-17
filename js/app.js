@@ -3865,19 +3865,21 @@ document.getElementById("run").addEventListener("click", async () => {
   const results = new Array(lines.length).fill(null);
   let completedCount = 0;
 
-  // 先创建所有占位符
-  for (let i = 0; i < lines.length; i++) {
-    resultsDiv.innerHTML += `
+  // 先创建所有占位符（构串后一次性赋值，避免 innerHTML += 导致的 O(N²) 重解析）
+  resultsDiv.innerHTML = lines
+    .map(
+      (line, i) => `
             <div class="processing-item" id="processing-${i}">
               <div class="processing-item-status">
                 <span class="processing-item-status-dot"></span>
                 <span id="status-${i}">等待处理</span>
               </div>
-              <div class="processing-item-text">${esc(lines[i].slice(0, 80))}${lines[i].length > 80 ? "..." : ""}</div>
+              <div class="processing-item-text">${esc(line.slice(0, 80))}${line.length > 80 ? "..." : ""}</div>
               <div class="processing-item-progress" id="progress-${i}" style="width: 0%"></div>
             </div>
-          `;
-  }
+          `,
+    )
+    .join("");
 
   // 更新条目状态和进度
   function updateItemStatus(index, status, progress) {

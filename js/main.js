@@ -257,6 +257,7 @@ document.getElementById("run").addEventListener("click", async () => {
 
   updateProgress(lines.length, lines.length, "校验完成");
   updateStats(results);
+  saveToHistory(rawText, results);
 
   btn.disabled = false;
   btn.textContent = originalText;
@@ -534,6 +535,7 @@ document.getElementById("extractBib").addEventListener("click", async () => {
   // 保存结果到全局变量
   window.currentResults = results;
   window.extractedMode = true; // 标记当前为提取模式
+  saveToHistory(rawText, results);
 
   // 提取模式下重置选择器为"全部"
   exportMode = "all";
@@ -672,6 +674,33 @@ document.getElementById("aiConfigModal").addEventListener("click", (e) => {
   }
   updateWeightDisplay();
 })();
+
+// ---------- 主题切换 ----------
+const THEME_KEY = "citation_checker_theme";
+
+function initTheme() {
+  const saved = localStorage.getItem(THEME_KEY);
+  if (saved === "dark" || saved === "light") {
+    document.documentElement.setAttribute("data-theme", saved);
+  } else {
+    // 检测系统偏好
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const theme = prefersDark ? "dark" : "light";
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem(THEME_KEY, theme);
+  }
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute("data-theme") || "light";
+  const next = current === "dark" ? "light" : "dark";
+  document.documentElement.setAttribute("data-theme", next);
+  localStorage.setItem(THEME_KEY, next);
+}
+
+window.toggleTheme = toggleTheme;
+
+initTheme();
 
 // 页面加载时初始化 AI 配置 UI
 updateAiConfigUI();

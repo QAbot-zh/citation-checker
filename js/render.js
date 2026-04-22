@@ -142,6 +142,43 @@ function renderCombinedTooltip(combinedDetails, oaDetails, crDetails) {
   return `<div class="score-tooltip" style="min-width: 280px;">${rows}</div>`;
 }
 
+function renderSearchDropdown(parsed) {
+  if (!parsed.title) return "";
+
+  const q = encodeURIComponent(parsed.title);
+  const engines = [
+    { name: "Google Scholar", url: `https://scholar.google.com/scholar?q=${q}`, icon: "google-scholar.svg", cls: "google" },
+    { name: "arXiv", url: `https://arxiv.org/search/?query=${q}&searchtype=all`, icon: "arxiv.svg", cls: "arxiv" },
+    { name: "IEEE Xplore", url: `https://ieeexplore.ieee.org/search/searchresult.jsp?queryText=${q}`, icon: "ieee.svg", cls: "ieee" },
+    { name: "Semantic Scholar", url: `https://www.semanticscholar.org/search?q=${q}&sort=relevance`, icon: "semantic-scholar.png", cls: "semantic" },
+  ];
+
+  const items = engines.map(e => `
+    <a href="${esc(e.url)}" target="_blank" rel="noopener noreferrer" class="search-dropdown-item ${e.cls}" onclick="event.stopPropagation()">
+      <img src="assets/icons/${e.icon}" alt="${e.name}">
+      ${e.name}
+    </a>
+  `).join("");
+
+  return `
+    <div class="search-dropdown" onclick="event.stopPropagation()">
+      <div class="search-dropdown-trigger">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        人工校验
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </div>
+      <div class="search-dropdown-menu">
+        ${items}
+      </div>
+    </div>
+  `;
+}
+
 function renderResult(result, index) {
   const {
     raw,
@@ -238,6 +275,7 @@ function renderResult(result, index) {
         <div class="result-index">${index + 1}</div>
         <div class="result-title">${esc(parsed.title || raw.slice(0, 80))}</div>
         <span class="format-badge">${esc(parsed.format || "通用")}</span>
+        ${renderSearchDropdown(parsed)}
         <div class="score-tooltip-wrapper result-score-wrapper" onclick="event.stopPropagation()">
           <div class="result-score ${verdict.level}">${
             verdict.text
@@ -464,6 +502,8 @@ function renderExtractedResult(result, index) {
       <div class="result-header" onclick="toggleResult(${index})">
         <div class="result-index">${index + 1}</div>
         <div class="result-title">${esc(parsed.title || raw.slice(0, 80))}</div>
+        <span class="format-badge">${esc(parsed.format || "通用")}</span>
+        ${renderSearchDropdown(parsed)}
         <div class="result-score medium">未校验</div>
         <div class="result-toggle">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

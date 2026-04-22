@@ -1794,6 +1794,114 @@ textarea {
   height: 12px;
 }
 
+/* 人工校验下拉菜单 */
+.search-dropdown {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.search-dropdown-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: rgba(66, 133, 244, 0.1);
+  color: #1a73e8;
+  border: 1px solid rgba(66, 133, 244, 0.25);
+  user-select: none;
+}
+
+.search-dropdown-trigger:hover {
+  background: rgba(66, 133, 244, 0.18);
+  border-color: rgba(66, 133, 244, 0.4);
+}
+
+.search-dropdown-trigger svg {
+  flex-shrink: 0;
+}
+
+.search-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 180px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition: all 0.2s ease;
+  z-index: 100;
+  overflow: hidden;
+}
+
+.search-dropdown:hover .search-dropdown-menu,
+.search-dropdown:focus-within .search-dropdown-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.search-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 13px;
+  transition: background 0.15s ease;
+  border-left: 3px solid transparent;
+}
+
+.search-dropdown-item:first-child {
+  border-radius: 8px 8px 0 0;
+}
+
+.search-dropdown-item:last-child {
+  border-radius: 0 0 8px 8px;
+}
+
+.search-dropdown-item:hover {
+  background: rgba(99, 102, 241, 0.05);
+  text-decoration: none;
+}
+
+.search-dropdown-item.google:hover {
+  background: rgba(66, 133, 244, 0.08);
+  border-left-color: #4285f4;
+}
+
+.search-dropdown-item.arxiv:hover {
+  background: rgba(185, 28, 28, 0.06);
+  border-left-color: #b91c1c;
+}
+
+.search-dropdown-item.ieee:hover {
+  background: rgba(0, 121, 193, 0.06);
+  border-left-color: #0079c1;
+}
+
+.search-dropdown-item.semantic:hover {
+  background: rgba(245, 158, 11, 0.06);
+  border-left-color: #f59e0b;
+}
+
+.search-dropdown-item img {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
 /* 格式示例样式 */
 .format-example {
   margin-bottom: 20px;
